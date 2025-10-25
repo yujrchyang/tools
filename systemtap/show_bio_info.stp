@@ -1,0 +1,93 @@
+%{
+#include <linux/blk_types.h>
+#include <linux/fs.h>
+#include <linux/genhd.h>
+#include <linux/sched.h>
+#include <asm/atomic.h>
+%}
+function show_bio_info:string(bio:long)
+%{
+    struct bio *bio = (struct bio *)STAP_ARG_bio;
+    bool sync = !!(bio->bi_rw & REQ_SYNC);
+    bool flush = !!(bio->bi_rw & REQ_FLUSH);
+    bool fua = !!(bio->bi_rw & REQ_FUA);
+
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN,
+        "disk=%-8s rw=%-6s sync=%-4s flush=%-4s fua=%-4s offset=%-20lu size=%-8u cnt=%-3d",
+        bio->bi_bdev->bd_disk->disk_name,
+        bio_data_dir(bio) == READ ? "read" : "write",
+        sync ? "yes" : "no",
+        flush ? "yes" : "no",
+        fua ? "yes" : "no",
+        bio->bi_sector * 512, bio->bi_size, atomic_read(&bio->bi_cnt));
+%}
+function get_disk_name_from_bio:string(bio:long)
+%{
+    struct bio *bio = (struct bio *)STAP_ARG_bio;
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%s", bio->bi_bdev->bd_disk->disk_name);
+%}
+function get_process_info:string()
+%{
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN,
+        "[%s:%d:%d]", current->comm, current->pid, task_cpu(current));
+%}
+
+probe begin {
+    printf("\nbegin to probe\n\n");
+}
+
+probe kernel.function("generic_make_request") {
+    if (get_disk_name_from_bio($bio) == "nvme0n1") {
+        printf(" %-30s submit bio : %s\n", get_process_info(), show_bio_info($bio));
+    }
+}
+
+probe end {
+    printf("\nend of probe\n");
+}%{
+#include <linux/blk_types.h>
+#include <linux/fs.h>
+#include <linux/genhd.h>
+#include <linux/sched.h>
+#include <asm/atomic.h>
+%}
+function show_bio_info:string(bio:long)
+%{
+    struct bio *bio = (struct bio *)STAP_ARG_bio;
+    bool sync = !!(bio->bi_rw & REQ_SYNC);
+    bool flush = !!(bio->bi_rw & REQ_FLUSH);
+    bool fua = !!(bio->bi_rw & REQ_FUA);
+
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN,
+        "disk=%-8s rw=%-6s sync=%-4s flush=%-4s fua=%-4s offset=%-20lu size=%-8u cnt=%-3d",
+        bio->bi_bdev->bd_disk->disk_name,
+        bio_data_dir(bio) == READ ? "read" : "write",
+        sync ? "yes" : "no",
+        flush ? "yes" : "no",
+        fua ? "yes" : "no",
+        bio->bi_sector * 512, bio->bi_size, atomic_read(&bio->bi_cnt));
+%}
+function get_disk_name_from_bio:string(bio:long)
+%{
+    struct bio *bio = (struct bio *)STAP_ARG_bio;
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%s", bio->bi_bdev->bd_disk->disk_name);
+%}
+function get_process_info:string()
+%{
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN,
+        "[%s:%d:%d]", current->comm, current->pid, task_cpu(current));
+%}
+
+probe begin {
+    printf("\nbegin to probe\n\n");
+}
+
+probe kernel.function("generic_make_request") {
+    if (get_disk_name_from_bio($bio) == "nvme0n1") {
+        printf(" %-30s submit bio : %s\n", get_process_info(), show_bio_info($bio));
+    }
+}
+
+probe end {
+    printf("\nend of probe\n");
+}
