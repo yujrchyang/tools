@@ -54,7 +54,7 @@ sudo apt-get install -y                                                         
   libclang-12-dev libdw-dev bpfcc-tools bpftrace librados-dev librbd-dev        \
   iputils-ping nghttp2 libnghttp2-dev libssl-dev libcurl4-gnutls-dev            \
   fakeroot dpkg-dev nvme-cli consul maven software-properties-common lsof sed   \
-  iotop strace psmisc valgrind
+  iotop strace psmisc valgrind tree
 
 sudo cp /sys/kernel/btf/vmlinux /usr/lib/modules/"$(uname -r)"/build/
 
@@ -62,7 +62,7 @@ pip install PrettyTable matplotlib seaborn
 
 # enable proxy
 
-# rebuild gdb
+# rebuild git
 mkdir git-openssl && cd git-openssl                                                                 \
   && sudo apt-get install -y debian-keyring build-essential fakeroot dpkg-dev libcurl4-openssl-dev  \
   && sudo apt-get build-dep git -y                                                                  \
