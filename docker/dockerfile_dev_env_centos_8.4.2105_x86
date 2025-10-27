@@ -1,0 +1,187 @@
+FROM centos:8.4.2105
+SHELL ["/bin/bash", "-c"]
+WORKDIR /tmp
+
+RUN mv /etc/yum.repos.d /etc/yum.repos.d.bak
+RUN mkdir -p /etc/yum.repos.d
+
+# use aliyun yum source
+RUN tee /etc/yum.repos.d/CentOS-Base.repo <<-'EOF'
+# CentOS-Base.repo
+#
+# The mirror system uses the connecting IP address of the client and the
+# update status of each mirror to pick mirrors that are updated to and
+# geographically close to the client.  You should use this for CentOS updates
+# unless you are manually picking other mirrors.
+#
+# If the mirrorlist= does not work for you, as a fall back you can try the 
+# remarked out baseurl= line instead.
+#
+#
+
+[base]
+name=CentOS-$releasever - Base - mirrors.aliyun.com
+#failovermethod=priority
+baseurl=http://mirrors.aliyun.com/centos/$releasever/BaseOS/$basearch/os/
+        http://mirrors.aliyuncs.com/centos/$releasever/BaseOS/$basearch/os/
+        http://mirrors.cloud.aliyuncs.com/centos/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official
+
+#additional packages that may be useful
+[extras]
+name=CentOS-$releasever - Extras - mirrors.aliyun.com
+#failovermethod=priority
+baseurl=http://mirrors.aliyun.com/centos/$releasever/extras/$basearch/os/
+        http://mirrors.aliyuncs.com/centos/$releasever/extras/$basearch/os/
+        http://mirrors.cloud.aliyuncs.com/centos/$releasever/extras/$basearch/os/
+gpgcheck=1
+gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official
+
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-$releasever - Plus - mirrors.aliyun.com
+#failovermethod=priority
+baseurl=http://mirrors.aliyun.com/centos/$releasever/centosplus/$basearch/os/
+        http://mirrors.aliyuncs.com/centos/$releasever/centosplus/$basearch/os/
+        http://mirrors.cloud.aliyuncs.com/centos/$releasever/centosplus/$basearch/os/
+gpgcheck=1
+enabled=0
+gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official
+
+[PowerTools]
+name=CentOS-$releasever - PowerTools - mirrors.aliyun.com
+#failovermethod=priority
+baseurl=http://mirrors.aliyun.com/centos/$releasever/PowerTools/$basearch/os/
+        http://mirrors.aliyuncs.com/centos/$releasever/PowerTools/$basearch/os/
+        http://mirrors.cloud.aliyuncs.com/centos/$releasever/PowerTools/$basearch/os/
+gpgcheck=1
+enabled=0
+gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official
+
+[AppStream]
+name=CentOS-$releasever - AppStream - mirrors.aliyun.com
+#failovermethod=priority
+baseurl=http://mirrors.aliyun.com/centos/$releasever/AppStream/$basearch/os/
+        http://mirrors.aliyuncs.com/centos/$releasever/AppStream/$basearch/os/
+        http://mirrors.cloud.aliyuncs.com/centos/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official
+
+EOF
+
+# install tools
+RUN yum clean all && yum makecache
+RUN yum install -y vim git curl wget gdb gcc gcc-c++ make automake cmake        \
+  python3 maven lsof sysstat smartmontools ncurses diffutils unzip              \
+  rpm-build rpmdevtools e4fsprogs xfsprogs gdisk util-linux jq net-tools        \
+  perf iotop strace psmisc valgrind
+
+RUN wget https://dl.rockylinux.org/pub/rocky/8/Devel/x86_64/os/Packages/d/delve-1.22.1-1.module+el8.10.0+1879+0cb86608.x86_64.rpm   \
+  && yum install delve-1.22.1-1.module+el8.10.0+1879+0cb86608.x86_64.rpm -y                                                         \
+  && rm -rf delve-1.22.1-1.module+el8.10.0+1879+0cb86608.x86_64.rpm                                                                 \
+  && wget https://rpmfind.net/linux/epel/8/Everything/x86_64/Packages/h/htop-3.2.1-1.el8.x86_64.rpm                                 \
+  && yum install htop-3.2.1-1.el8.x86_64.rpm -y                                                                                     \
+  && rm -rf htop-3.2.1-1.el8.x86_64.rpm
+
+# install go
+RUN wget https://go.dev/dl/go1.23.7.linux-amd64.tar.gz                          \
+  && tar -zxf go1.23.7.linux-amd64.tar.gz -C /usr/local/                        \
+  && rm -rf go1.23.7.linux-amd64.tar.gz                                         \
+  && mkdir -p "$HOME/.go"                                                       \
+  && echo "" >> /etc/profile.d/go.profile                                       \
+  && echo 'export GOROOT=/usr/local/go' >> /etc/profile.d/go.profile            \
+  && echo 'export PATH=$PATH:$GOROOT/bin' >> /etc/profile.d/go.profile          \
+  && echo 'export GOPATH=/opt/go' >> /etc/profile.d/go.profile                  \
+  && echo 'export PATH=$PATH:$GOPATH/bin' >> /etc/profile.d/go.profile          \
+  && echo "" >> /etc/profile.d/go.profile                                       \
+  && source /etc/profile.d/go.profile
+
+# setup go env
+RUN tee -a $HOME/.go/env <<-'EOF'
+#!/bin/sh
+# go shell setup
+# affix colons on either side of $PATH to simplify matching
+case ":${PATH}:" in
+  *:"/usr/local/go":*)
+    ;;
+  *)
+    # Prepending path in case a system-installed go needs to be overridden
+    export GOROOT="/usr/local/go"
+    export PATH="$PATH:$GOROOT/bin"
+    export GOPATH="/opt/go"
+    export PATH="$PATH:$GOPATH/bin"
+    ;;
+esac
+
+EOF
+
+RUN . $HOME/.go/env
+
+# install go tools
+RUN go install github.com/google/pprof@latest           \
+  && go install mvdan.cc/gofumpt@v0.2.1
+
+# install rust env
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y  \
+  && . "$HOME/.cargo/env"
+  && rustup component add rust-src rust-analyzer-preview
+  && cargo install eza
+
+# setup bashrc
+RUN tee -a $HOME/.bashrc <<-'EOF'
+
+alias rm='rm -rf'
+alias ..='cd ..'
+alias ls='ls --color --group-directories-first'
+alias ll='ls --color -lh --group-directories-first'
+alias la='ls --color -lhA --group-directories-first'
+
+# set bash git branch
+function git_branch {
+    branch="`git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //"`"
+    if [ "${branch}" != "" ];then
+        if [ "${branch}" = "(no branch)" ];then
+            branch="(`git rev-parse --short HEAD`...)"
+        fi
+        echo " ($branch)"
+    fi
+}
+export PS1='[\u@\h \[\033[01;36m\]\W\[\033[01;32m\]$(git_branch)\[\033[00m\]] \$ '
+
+. $HOME/.go/env
+
+EOF
+
+# install zsh
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"                                \
+  && git clone https://github.com/zsh-users/zsh-autosuggestions "$HOME/.oh-my-zsh/custom"/plugins/zsh-autosuggestions              \
+  && git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$HOME/.oh-my-zsh/custom"/plugins/zsh-syntax-highlighting
+
+# setup .zshrc
+RUN sed -i 's/^plugins=.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' $HOME/.zshrc
+
+RUN tee -a $HOME/.zshrc <<-'EOF'
+
+setopt rmstarsilent
+
+alias rm='rm -rf'
+alias ..='cd ..'
+alias la='eza --long --header --group --modified --color-scale --all --sort=type'
+alias ll='eza --long --header --group --modified --color-scale --sort=type'
+alias ls='eza'
+alias gs='git status'
+alias gaa='git add .'
+alias gcm='git commit -m'
+alias gp='git push'
+
+export TERM=xterm-256color
+
+export USE_CCACHE=1
+export CCACHE_SLOPPINESS=file_macro,include_file_mtime,time_macros
+export CCACHE_UMASK=002
+
+. "$HOME/.cargo/env"
+. $HOME/.go/env
+
+EOF
