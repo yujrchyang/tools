@@ -3,6 +3,7 @@ SHELL ["/bin/bash", "-c"]
 WORKDIR /tmp
 
 # update apt source
+# RUN sed -i 's/^[[:space:]]*#[[:space:]]*\(deb-src\)/\1/' /etc/apt/sources.list
 RUN apt-get update
 RUN apt-get install -y ca-certificates
 
