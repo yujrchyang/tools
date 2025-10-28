@@ -209,6 +209,7 @@ RUN git clone --depth=1 --branch seastar-22.11.0 https://github.com/scylladb/sea
 # delete sudo command in scripts/pkgdep/common.sh
 RUN git clone --depth=1 --branch v24.01 https://github.com/spdk/spdk.git spdk-24.01   \
   && cd spdk-24.01                                                                    \
+  && sed -i 's/\(^[[:space:]]*\)sudo -E /\1/' scripts/pkgdep/common.sh                \
   && scripts/pkgdep.sh --all                                                          \
   && cd .. && rm -rf spdk-24.01
 
