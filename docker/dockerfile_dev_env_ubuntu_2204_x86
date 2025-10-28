@@ -110,7 +110,7 @@ RUN add-apt-repository ppa:longsleep/golang-backports                           
   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
-ENV GOROOT=/usr/local/go
+ENV GOROOT=/usr/lib/go
 ENV PATH=$PATH:$GOROOT/bin
 ENV GOPATH=/opt/go
 ENV PATH=$PATH:$GOPATH/bin
