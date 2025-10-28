@@ -126,7 +126,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y  \
   && rustup component add rust-src rust-analyzer-preview
 
 # install vim
-RUN git clone --depth=1 https://github.com/jrchyang/vimrc.git ~/.vim_runtime              \
+RUN git clone --depth=1 https://github.com/yujrchyang/vimrc.git ~/.vim_runtime            \
   && cd $HOME/.vim_runtime                                                                \
   && git submodule update --init --recursive                                              \
   && python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo    \
