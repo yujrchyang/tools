@@ -1,6 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC1091,SC2016,SC2086
 
+# sudo sed -i 's/^[[:space:]]*#[[:space:]]*\(deb-src\)/\1/' /etc/apt/sources.list
 sudo apt-get update
 sudo apt-get install -y ca-certificates
 
@@ -132,14 +133,14 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y  \
   && rustup component add rust-src rust-analyzer-preview
 
 # install vim with YCM
-git clone https://github.com/yujrchyang/vimrc.git ~/.vim_runtime                          \
+git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime                    \
   && cd $HOME/.vim_runtime                                                              \
   && git submodule update --init --recursive                                            \
   && python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo  \
   && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
 
 # install vim without YCM
-git clone https://github.com/yujrchyang/vimrc.git ~/.vim_runtime                  \
+git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime            \
   && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
 
 # install blobstore deps x86
@@ -220,6 +221,7 @@ git clone --depth=1 --branch seastar-22.11.0 https://github.com/scylladb/seastar
 # delete sudo command in scripts/pkgdep/common.sh
 git clone --depth=1 --branch v24.01 https://github.com/spdk/spdk.git spdk-24.01 \
   && cd spdk-24.01                                                              \
+  && sed -i 's/\(^[[:space:]]*\)sudo -E /\1/' scripts/pkgdep/common.sh          \
   && scripts/pkgdep.sh --all                                                    \
   && cd .. && rm -rf spdk-24.01
 
