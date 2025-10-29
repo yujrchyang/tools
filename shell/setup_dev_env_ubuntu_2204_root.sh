@@ -2,8 +2,8 @@
 # shellcheck disable=SC1091,SC2016,SC2086
 
 # sed -i 's/^[[:space:]]*#[[:space:]]*\(deb-src\)/\1/' /etc/apt/sources.list
-apt-get update
-apt-get install -y ca-certificates
+apt update
+apt install -y ca-certificates
 
 # update apt source for x86
 tee /etc/apt/sources.list <<-'EOF'
@@ -38,9 +38,9 @@ deb-src http://ports.ubuntu.com/ubuntu-ports/ jammy-security main restricted uni
 EOF
 
 # install tools
-apt-get update
-apt-get -y install tzdata
-apt-get install -y                                                              \
+apt update
+apt -y install tzdata
+apt install -y                                                                  \
   vim git wget curl net-tools apt-file libtool smartmontools sysstat            \
   gdb gcc g++ make automake cmake ninja-build build-essential nasm              \
   python3 python3-dev python3-sphinx python3-pip nodejs dosfstools xfsprogs     \
@@ -65,10 +65,10 @@ pip install PrettyTable matplotlib seaborn
 
 # rebuild git
 mkdir git-openssl && cd git-openssl                                                                 \
-  && apt-get install -y debian-keyring build-essential fakeroot dpkg-dev libcurl4-openssl-dev       \
-  && apt-get build-dep git -y                                                                       \
-  && apt-get install -y libcurl4-openssl-dev                                                        \
-  && apt-get source git -y                                                                          \
+  && apt install -y debian-keyring build-essential fakeroot dpkg-dev libcurl4-openssl-dev           \
+  && apt build-dep git -y                                                                           \
+  && apt install -y libcurl4-openssl-dev                                                            \
+  && apt source git -y                                                                              \
   && cd git-2.34.1                                                                                  \
   && grep gnutls < debian/control                                                                   \
   && sed -i 's/libcurl4-gnutls-dev/libcurl4-openssl-dev/g' debian/control                           \
@@ -112,8 +112,8 @@ source $HOME/.zshrc
 # install terraform
 wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg      \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
-  && apt-get update                                                                                                        \
-  && apt-get install -y terraform                                                                                          \
+  && apt update                                                                                                            \
+  && apt install -y terraform                                                                                              \
   && wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.92.1/terragrunt_linux_amd64        \
   && chmod +x terragrunt                                                                                                   \
   && mv terragrunt /usr/bin                                                                                                \
@@ -123,8 +123,8 @@ wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/k
 
 # install go
 add-apt-repository ppa:longsleep/golang-backports                               \
-  && apt-get update                                                             \
-  && apt-get install -y golang                                                  \
+  && apt update                                                                 \
+  && apt install -y golang                                                      \
   && go env -w GOPROXY=https://goproxy.cn,direct                                \
   && go env -w GOPATH=/opt/go                                                   \
   && mkdir -p $HOME/.config/go                                                  \
