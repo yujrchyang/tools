@@ -138,17 +138,17 @@ add-apt-repository ppa:longsleep/golang-backports                               
 source $HOME/.zshrc && echo $PATH
 
 # install golangci-lint
-# go install github.com/axw/gocov/gocov@latest
+# go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0 \
   && golangci-lint --version
 
+# go install github.com/axw/gocov/gocov@latest
 go install github.com/google/pprof@latest                                       \
   && go install mvdan.cc/gofumpt@latest                                         \
   && go install github.com/AlekSi/gocov-xml@latest                              \
   && go install github.com/matm/gocov-html/cmd/gocov-html@latest                \
   && go install github.com/go-delve/delve/cmd/dlv@latest                        \
-  && go install github.com/golang/mock/mockgen@latest                           \
-  && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
+  && go install github.com/golang/mock/mockgen@latest
 
 # install rust
 curl https://sh.rustup.rs -sSf | sh -s -- -y  \
