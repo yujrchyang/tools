@@ -125,22 +125,25 @@ pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      
   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
-# install latest go
+# update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt
 # update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt
 # update-alternatives --install /usr/bin/go go /usr/lib/go-1.25/bin/go 125 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.25/bin/gofmt
-# add-apt-repository --remove ppa:longsleep/golang-backports
-# rm -f /etc/apt/trusted.gpg.d/longsleep-ubuntu-golang-backports.gpg
-# apt update
-add-apt-repository ppa:longsleep/golang-backports                               \
+add-apt-repository ppa:longsleep/golang-backports -y                            \
   && apt update                                                                 \
-  && apt install -y golang                                                      \
+  && apt install -y golang-1.24                                                 \
   && go env -w GOPATH=/opt/go                                                   \
   && mkdir -p $HOME/.config/go                                                  \
   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
+# update path
 source $HOME/.zshrc && echo $PATH
+
+# remove it, in case of ceph install go-1.25
+add-apt-repository --remove ppa:longsleep/golang-backports -y                   \
+  && rm -f /etc/apt/trusted.gpg.d/longsleep-ubuntu-golang-backports.gpg         \
+  && apt update
 
 # install golangci-lint
 # go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
