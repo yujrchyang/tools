@@ -110,7 +110,7 @@ EOF
 
 source $HOME/.zshrc
 
-# install go
+# install go 1.24
 pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      \
   && wget https://go.dev/dl/$pkgname                                            \
   && tar -zxf $pkgname                                                          \
@@ -126,13 +126,25 @@ pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      
   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc    \
   && source $HOME/.zshrc
 
+# install latest go
+add-apt-repository ppa:longsleep/golang-backports                               \
+  && apt update                                                                 \
+  && apt install -y golang                                                      \
+  && go env -w GOPATH=/opt/go                                                   \
+  && mkdir -p $HOME/.config/go                                                  \
+  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
+  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
+  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc    \
+  && source $HOME/.zshrc
+
+# go install github.com/axw/gocov/gocov@latest
 go install github.com/google/pprof@latest                                       \
   && go install mvdan.cc/gofumpt@latest                                         \
-  && go install github.com/axw/gocov/gocov@latest                               \
   && go install github.com/AlekSi/gocov-xml@latest                              \
   && go install github.com/matm/gocov-html/cmd/gocov-html@latest                \
   && go install github.com/go-delve/delve/cmd/dlv@latest                        \
-  && go install github.com/golang/mock/mockgen@v1.6.0
+  && go install github.com/golang/mock/mockgen@latest                           \
+  && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 
 # install rust
 curl https://sh.rustup.rs -sSf | sh -s -- -y  \
