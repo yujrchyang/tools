@@ -126,6 +126,8 @@ pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      
   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
 # install latest go
+# update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt
+# update-alternatives --install /usr/bin/go go /usr/lib/go-1.25/bin/go 125 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.25/bin/gofmt
 add-apt-repository ppa:longsleep/golang-backports                               \
   && apt update                                                                 \
   && apt install -y golang                                                      \
