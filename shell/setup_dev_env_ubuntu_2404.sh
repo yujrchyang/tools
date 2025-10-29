@@ -1,0 +1,255 @@
+#!/bin/bash
+# shellcheck disable=SC1091,SC2016,SC2086
+
+# sed -i 's/^[[:space:]]*#[[:space:]]*\(deb-src\)/\1/' /etc/apt/sources.list
+apt update
+apt install -y ca-certificates
+
+# update apt source for x86
+tee /etc/apt/sources.list <<-'EOF'
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse
+deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse
+deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse
+deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse
+
+deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse
+deb-src http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse
+
+# deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-proposed main restricted universe multiverse
+
+EOF
+
+# update apt source for arm
+tee /etc/apt/sources.list <<-'EOF'
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble main restricted universe multiverse
+deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-updates main restricted universe multiverse
+deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-backports main restricted universe multiverse
+deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-backports main restricted universe multiverse
+
+deb http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse
+deb-src http://ports.ubuntu.com/ubuntu-ports/ noble-security main restricted universe multiverse
+
+# deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-proposed main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ noble-proposed main restricted universe multiverse
+
+EOF
+
+# install tools
+apt update
+apt -y install tzdata
+apt install -y                                                                  \
+  gdb gcc g++ make automake cmake ninja-build build-essential nasm llvm npm     \
+  clang clangd libclang-dev bear ccache dwarves valgrind libtool maven fakeroot \
+  bpftrace nodejs dpkg-dev zsh libprotobuf-dev protobuf-compiler                \
+  software-properties-common apt-file dosfstools e2fsprogs xfsprogs sysstat     \
+  vim vim-nox git wget curl net-tools smartmontools nvme-cli iputils-ping       \
+  lsof sed iotop strace psmisc tree ack tcl bison flex sqlite3 libsqlite3-dev   \
+  lz4 eza bc jq diffutils unzip texinfo rdma-core lua5.4 liblua5.4-dev gdisk    \
+  libnuma-dev libzstd-dev libzbd-dev bpfcc-tools libbpfcc-dev libbpf-dev        \
+  systemtap-sdt-dev fonts-powerline mono-complete openjdk-17-jdk openjdk-17-jre \
+  netcat-openbsd nghttp2 libnghttp2-dev libssl-dev libcurl4-gnutls-dev          \
+  libelf-dev libcereal-dev libgtest-dev libgmock-dev asciidoctor                \
+  libthrift-dev libsystemd-dev libblkid-dev libaio-dev libsnappy-dev            \
+  libspdlog-dev librados-dev librbd-dev libdw-dev libboost-all-dev              \
+  python3 python3-dev python3-pip python3-sphinx python3-prettytable
+
+cp /sys/kernel/btf/vmlinux /usr/lib/modules/"$(uname -r)"/build/
+
+# enable proxy
+
+# rebuild git (may be not needed)
+mkdir git-openssl && cd git-openssl                                                            \
+  && apt install -y debian-keyring                                                             \
+  && apt build-dep git -y                                                                      \
+  && apt install -y libcurl4-openssl-dev                                                       \
+  && apt source git -y                                                                         \
+  && cd git-2.43.0                                                                             \
+  && grep gnutls < debian/control                                                              \
+  && sed -i 's/libcurl4-gnutls-dev/libcurl4-openssl-dev/g' debian/control                      \
+  && grep curl < debian/control                                                                \
+  && dpkg-buildpackage -b -uc -us                                                              \
+  && cd .. && dpkg -i git-man_2.43.0-1ubuntu7.3_all.deb git_2.43.0-1ubuntu7.3_amd64.deb        \
+  && cd .. && dpkg -i git-man_2.43.0-1ubuntu7.3_all.deb git_2.43.0-1ubuntu7.3_arm64.deb        \
+  && cd .. && rm -rf git-openssl
+
+# zsh
+# insread - sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"                                   \
+  && git clone https://github.com/zsh-users/zsh-completions $HOME/.oh-my-zsh/custom/plugins/zsh-completions                       \
+  && git clone https://github.com/zsh-users/zsh-autosuggestions $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions               \
+  && git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+
+# setup .zshrc
+sed -i 's/^plugins=.*/plugins=(git zsh-completions zsh-autosuggestions zsh-syntax-highlighting)/' $HOME/.zshrc
+tee -a $HOME/.zshrc <<-'EOF'
+
+setopt rmstarsilent
+
+alias rm='rm -rf'
+alias ..='cd ..'
+alias la='eza --long --header --group --modified --color-scale --all --sort=type'
+alias ll='eza --long --header --group --modified --color-scale --sort=type'
+alias ls='eza'
+alias gs='git status'
+alias gaa='git add .'
+alias gcm='git commit -m'
+alias gp='git push'
+
+export TERM=xterm-256color
+
+export USE_CCACHE=1
+export CCACHE_SLOPPINESS=file_macro,include_file_mtime,time_macros
+export CCACHE_UMASK=002
+
+EOF
+
+source $HOME/.zshrc
+
+# install terraform
+wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
+  && apt update                                                                                                       \
+  && apt install -y terraform                                                                                         \
+  && wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.92.1/terragrunt_linux_amd64   \
+  && chmod +x terragrunt                                                                                              \
+  && mv terragrunt /usr/bin                                                                                           \
+  && wget -O hcl2json https://github.com/tmccombs/hcl2json/releases/download/v0.6.8/hcl2json_linux_amd64              \
+  && chmod +x hcl2json                                                                                                \
+  && mv hcl2json /usr/bin
+
+# install go
+add-apt-repository ppa:longsleep/golang-backports                                                                                     \
+  && apt update                                                                                                                       \
+  && apt install -y golang-1.24                                                                                                       \
+  && update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt \
+  && go env -w GOPATH=/opt/go                                                                                                         \
+  && mkdir -p $HOME/.config/go                                                                                                        \
+  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                                                                         \
+  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile                                                                 \
+  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
+
+source $HOME/.zshrc
+
+go install github.com/google/pprof@latest                                       \
+  && go install mvdan.cc/gofumpt@latest                                         \
+  && go install github.com/axw/gocov/gocov@latest                               \
+  && go install github.com/AlekSi/gocov-xml@latest                              \
+  && go install github.com/matm/gocov-html/cmd/gocov-html@latest                \
+  && go install github.com/go-delve/delve/cmd/dlv@latest                        \
+  && go install github.com/golang/mock/mockgen@v1.6.0
+
+# install rust
+curl https://sh.rustup.rs -sSf | sh -s -- -y  \
+  && . $HOME/.cargo/env                     \
+  && rustup component add rust-src rust-analyzer-preview
+
+# install vim with YCM
+git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime                    \
+  && cd $HOME/.vim_runtime                                                              \
+  && git submodule update --init --recursive                                            \
+  && python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo  \
+  && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
+
+# install vim without YCM
+git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime            \
+  && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
+
+# install blobstore deps x86
+## install consul
+wget https://ocs-cn-south1.heytapcs.com/blobstore/consul_1.11.4_linux_amd64.zip \
+  && unzip -q consul_1.11.4_linux_amd64.zip                                     \
+  && mv -f consul /usr/bin                                                      \
+  && rm -rf consul_1.11.4_linux_amd64.zip
+
+## install jdk
+wget https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u322-b06/OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz     \
+  && tar -zxf OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz -C /usr/bin                                                             \
+  && rm -rf OpenJDK8U-jdk_x64_linux_hotspot_8u322b06.tar.gz                                                                           \
+  && mkdir -p $HOME/.config/java                                                                                                      \
+  && echo 'export JAVA_HOME=/usr/bin/jdk8u322-b06' >> $HOME/.config/java/profile                                                      \
+  && echo 'export PATH=$JAVA_HOME/bin:$PATH' >> $HOME/.config/java/profile                                                            \
+  && echo 'export CLASSPATH=$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar' >> $HOME/.config/java/profile                             \
+  && echo '. "$HOME/.config/java/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
+
+source $HOME/.zshrc
+
+# install kafka
+wget https://ocs-cn-south1.heytapcs.com/blobstore/kafka_2.13-3.1.0.tgz          \
+  && tar -zxf kafka_2.13-3.1.0.tgz -C /usr/bin                                  \
+  && rm -rf kafka_2.13-3.1.0.tgz
+
+# install clickhouse
+# vim absl/debugging/failure_signal_handler.cc
+# size_t stack_size = (std::max<size_t>(SIGSTKSZ, 65536) + page_mask) & ~page_mask;
+wget -O abseil-cpp-20200923.3.tar.gz https://github.com/abseil/abseil-cpp/archive/refs/tags/20200923.3.tar.gz                                                             \
+  && tar -zxf abseil-cpp-20200923.3.tar.gz                                                                                                                                \
+  && cd abseil-cpp-20200923.3                                                                                                                                             \
+  && sed -i 's/^  size_t stack_size =.*/  size_t stack_size = (std::max<size_t>(SIGSTKSZ, 65536) + page_mask) \& ~page_mask;/' absl/debugging/failure_signal_handler.cc   \
+  && mkdir build && cd build                                                                                                                                              \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release                                                                                                                                  \
+  && make && make install                                                                                                                                                 \
+  && cd ../.. && rm -rf abseil-cpp-20200923.3*
+
+wget -O clickhouse-cpp-2.1.0.tar.gz https://github.com/ClickHouse/clickhouse-cpp/archive/refs/tags/v2.1.0.tar.gz  \
+  && tar -zxf clickhouse-cpp-2.1.0.tar.gz                                                                         \
+  && cd clickhouse-cpp-2.1.0                                                                                      \
+  && mkdir build && cd build                                                                                      \
+  && cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release                                                   \
+  && make && make install                                                                                         \
+  && cd ../.. && rm -rf clickhouse-cpp*
+
+# install rocksdb deps
+wget -O gflags-2.2.2.tar.gz https://github.com/gflags/gflags/archive/refs/tags/v2.2.2.tar.gz  \
+  && tar -zxf gflags-2.2.2.tar.gz                                                             \
+  && cd gflags-2.2.2                                                                          \
+  && mkdir build && cd build                                                                  \
+  && cmake .. -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release                                \
+  && make && make install                                                                     \
+  && cd ../.. && rm -rf gflags-2.2.2*
+
+wget -O snappy-1.1.8.tar.gz https://github.com/google/snappy/archive/refs/tags/1.1.8.tar.gz   \
+  && tar -zxf snappy-1.1.8.tar.gz                                                             \
+  && cd snappy-1.1.8                                                                          \
+  && mkdir build && cd build                                                                  \
+  && cmake .. -DSNAPPY_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release       \
+  && make && make install                                                                     \
+  && cd ../.. && rm -rf snappy-1.1.8*
+
+wget -O leveldb-1.22.tar.gz https://github.com/google/leveldb/archive/refs/tags/1.22.tar.gz   \
+  && tar -zxf leveldb-1.22.tar.gz                                                             \
+  && cd leveldb-1.22                                                                          \
+  && mkdir build && cd build                                                                  \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release                                                      \
+  && make && make install                                                                     \
+  && cd ../.. && rm -rf leveldb-1.22*
+
+git clone --depth=1 --branch seastar-22.11.0 https://github.com/scylladb/seastar.git seastar-22.11.0  \
+  && cd seastar-22.11.0                                                                               \
+  && ./install-dependencies.sh                                                                        \
+  && cd .. && rm -rf seastar-22.11.0
+
+# install spdk deps
+# delete command in scripts/pkgdep/common.sh
+git clone --depth=1 --branch v24.01 https://github.com/spdk/spdk.git spdk-24.01 \
+  && cd spdk-24.01                                                              \
+  && sed -i 's/\(^[[:space:]]*\)sudo -E /\1/' scripts/pkgdep/common.sh          \
+  && scripts/pkgdep.sh --all                                                    \
+  && cd .. && rm -rf spdk-24.01
+
+# install pq deps
+
+# install ceph deps
+git clone --depth=1 --branch v17.2.8 https://github.com/ceph/ceph ceph-v17.2.8  \
+  && cd ceph-v17.2.8                                                            \
+  && ./install-deps.sh                                                          \
+  && cd .. && rm -rf ceph-v17.2.8
+
+vim /etc/default/grub
+# GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt"
+update-grub
+reboot
