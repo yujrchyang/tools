@@ -110,6 +110,57 @@ EOF
 
 source $HOME/.zshrc
 
+# install go
+pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      \
+  && wget https://go.dev/dl/$pkgname                                            \
+  && tar -zxf $pkgname                                                          \
+  && rm -rf $pkgname                                                            \
+  && mv go /usr/lib/go-1.24                                                     \
+  && ln -s /usr/lib/go-1.24/bin/go /usr/bin/go                                  \
+  && ln -s /usr/lib/go-1.24/bin/gofmt /usr/bin/gofmt                            \
+  && go env -w GOROOT=/usr/lib/go-1.24                                          \
+  && go env -w GOPATH=/opt/go                                                   \
+  && mkdir -p $HOME/.config/go                                                  \
+  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
+  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
+  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc    \
+  && source $HOME/.zshrc
+
+go install github.com/google/pprof@latest                                       \
+  && go install mvdan.cc/gofumpt@latest                                         \
+  && go install github.com/axw/gocov/gocov@latest                               \
+  && go install github.com/AlekSi/gocov-xml@latest                              \
+  && go install github.com/matm/gocov-html/cmd/gocov-html@latest                \
+  && go install github.com/go-delve/delve/cmd/dlv@latest                        \
+  && go install github.com/golang/mock/mockgen@v1.6.0
+
+# install rust
+curl https://sh.rustup.rs -sSf | sh -s -- -y  \
+  && . $HOME/.cargo/env                       \
+  && rustup component add rust-src rust-analyzer-preview
+
+# install terraform
+pkgname="terraform_1.13.4_linux_$(dpkg --print-architecture).zip"                                                                              \
+  && wget https://releases.hashicorp.com/terraform/1.13.4/$pkgname                                                                             \
+  && unzip -q $pkgname && mv terraform /usr/bin                                                                                                \
+  && rm -rf $pkgname LICENSE.txt                                                                                                               \
+  && wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.92.1/terragrunt_linux_"$(dpkg --print-architecture)"   \
+  && chmod +x terragrunt && mv terragrunt /usr/bin                                                                                             \
+  && wget -O hcl2json https://github.com/tmccombs/hcl2json/releases/download/v0.6.8/hcl2json_linux_"$(dpkg --print-architecture)"              \
+  && chmod +x hcl2json && mv hcl2json /usr/bin                                                                                                 \
+  && which terraform terragrunt hcl2json
+
+# install vim with YCM
+git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime                    \
+  && cd $HOME/.vim_runtime                                                              \
+  && git submodule update --init --recursive                                            \
+  && python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo  \
+  && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
+
+# install vim without YCM
+git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime            \
+  && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
+
 # install blobstore deps x86
 ## install consul
 pkgname="consul_1.11.4_linux_$(dpkg --print-architecture).zip"                  \
@@ -198,57 +249,6 @@ git clone --depth=1 --branch v17.2.8 https://github.com/ceph/ceph ceph-v17.2.8  
   && cd ceph-v17.2.8                                                            \
   && ./install-deps.sh                                                          \
   && cd .. && rm -rf ceph-v17.2.8
-
-# install go
-pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      \
-  && wget https://go.dev/dl/$pkgname                                            \
-  && tar -zxf $pkgname                                                          \
-  && rm -rf $pkgname                                                            \
-  && mv go /usr/lib/go-1.24                                                     \
-  && ln -s /usr/lib/go-1.24/bin/go /usr/bin/go                                  \
-  && ln -s /usr/lib/go-1.24/bin/gofmt /usr/bin/gofmt                            \
-  && go env -w GOROOT=/usr/lib/go-1.24                                          \
-  && go env -w GOPATH=/opt/go                                                   \
-  && mkdir -p $HOME/.config/go                                                  \
-  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
-  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
-  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc    \
-  && source $HOME/.zshrc
-
-go install github.com/google/pprof@latest                                       \
-  && go install mvdan.cc/gofumpt@latest                                         \
-  && go install github.com/axw/gocov/gocov@latest                               \
-  && go install github.com/AlekSi/gocov-xml@latest                              \
-  && go install github.com/matm/gocov-html/cmd/gocov-html@latest                \
-  && go install github.com/go-delve/delve/cmd/dlv@latest                        \
-  && go install github.com/golang/mock/mockgen@v1.6.0
-
-# install rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y  \
-  && . $HOME/.cargo/env                       \
-  && rustup component add rust-src rust-analyzer-preview
-
-# install terraform
-pkgname="terraform_1.13.4_linux_$(dpkg --print-architecture).zip"                                                                              \
-  && wget https://releases.hashicorp.com/terraform/1.13.4/$pkgname                                                                             \
-  && unzip -q $pkgname && mv terraform /usr/bin                                                                                                \
-  && rm -rf $pkgname LICENSE.txt                                                                                                               \
-  && wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.92.1/terragrunt_linux_"$(dpkg --print-architecture)"   \
-  && chmod +x terragrunt && mv terragrunt /usr/bin                                                                                             \
-  && wget -O hcl2json https://github.com/tmccombs/hcl2json/releases/download/v0.6.8/hcl2json_linux_"$(dpkg --print-architecture)"              \
-  && chmod +x hcl2json && mv hcl2json /usr/bin                                                                                                 \
-  && which terraform terragrunt hcl2json
-
-# install vim with YCM
-git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime                    \
-  && cd $HOME/.vim_runtime                                                              \
-  && git submodule update --init --recursive                                            \
-  && python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo  \
-  && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
-
-# install vim without YCM
-git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime            \
-  && sh $HOME/.vim_runtime/install_awesome_vimrc.sh
 
 cp /sys/kernel/btf/vmlinux /usr/lib/modules/"$(uname -r)"/build/
 vim /etc/default/grub
