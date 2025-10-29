@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1091,SC2016,SC2086
+# shellcheck disable=SC1091,SC2016,SC2086,SC2046
 
 # sed -i 's/^[[:space:]]*#[[:space:]]*\(deb-src\)/\1/' /etc/apt/sources.list
 apt update
@@ -78,8 +78,8 @@ mkdir git-openssl && cd git-openssl                                             
   && cd .. && rm -rf git-openssl
 
 # zsh
-# original : sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-sh -c "$(curl -fsSL https://install.ohmyz.sh/)"                                                                                   \
+# sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"                                   \
   && git clone https://github.com/zsh-users/zsh-completions $HOME/.oh-my-zsh/custom/plugins/zsh-completions                       \
   && git clone https://github.com/zsh-users/zsh-autosuggestions $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions               \
   && git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
@@ -137,7 +137,11 @@ add-apt-repository ppa:longsleep/golang-backports                               
 
 source $HOME/.zshrc && echo $PATH
 
+# install golangci-lint
 # go install github.com/axw/gocov/gocov@latest
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0 \
+  && golangci-lint --version
+
 go install github.com/google/pprof@latest                                       \
   && go install mvdan.cc/gofumpt@latest                                         \
   && go install github.com/AlekSi/gocov-xml@latest                              \
