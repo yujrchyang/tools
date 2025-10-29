@@ -100,10 +100,22 @@ EOF
 
 # source $HOME/.zshrc
 
+# install terraform
+RUN wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg  \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
+  && apt-get update                                                                                                        \
+  && apt-get install -y terraform                                                                                          \
+  && wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.92.1/terragrunt_linux_amd64        \
+  && chmod +x terragrunt                                                                                                   \
+  && mv terragrunt /usr/bin                                                                                                \
+  && wget -O hcl2json https://github.com/tmccombs/hcl2json/releases/download/v0.6.8/hcl2json_linux_amd64                   \
+  && chmod +x hcl2json                                                                                                     \
+  && mv hcl2json /usr/bin
+
 # install go
 RUN add-apt-repository ppa:longsleep/golang-backports                           \
-  && sudo apt-get update                                                        \
-  && sudo apt-get install -y golang                                             \
+  && apt-get update                                                             \
+  && apt-get install -y golang                                                  \
   && go env -w GOPROXY=https://goproxy.cn,direct                                \
   && go env -w GOPATH=/opt/go                                                   \
   && mkdir -p $HOME/.config/go                                                  \

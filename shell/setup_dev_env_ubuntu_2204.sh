@@ -109,6 +109,18 @@ EOF
 
 source $HOME/.zshrc
 
+# install terraform
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list \
+  && sudo apt-get update                                                                                                   \
+  && sudo apt-get install -y terraform                                                                                     \
+  && wget -O terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.92.1/terragrunt_linux_amd64        \
+  && chmod +x terragrunt                                                                                                   \
+  && sudo mv terragrunt /usr/bin                                                                                           \
+  && wget -O hcl2json https://github.com/tmccombs/hcl2json/releases/download/v0.6.8/hcl2json_linux_amd64                   \
+  && chmod +x hcl2json                                                                                                     \
+  && sudo mv hcl2json /usr/bin
+
 # install go
 sudo add-apt-repository ppa:longsleep/golang-backports                          \
   && sudo apt-get update                                                        \
