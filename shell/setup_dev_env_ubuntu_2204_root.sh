@@ -128,6 +128,9 @@ pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      
 # install latest go
 # update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt
 # update-alternatives --install /usr/bin/go go /usr/lib/go-1.25/bin/go 125 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.25/bin/gofmt
+# add-apt-repository --remove ppa:longsleep/golang-backports
+# rm -f /etc/apt/trusted.gpg.d/longsleep-ubuntu-golang-backports.gpg
+# apt update
 add-apt-repository ppa:longsleep/golang-backports                               \
   && apt update                                                                 \
   && apt install -y golang                                                      \
