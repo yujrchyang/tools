@@ -57,7 +57,7 @@ apt install -y                                                                  
   libclang-12-dev libdw-dev bpfcc-tools bpftrace librados-dev librbd-dev        \
   iputils-ping nghttp2 libnghttp2-dev libssl-dev                                \
   fakeroot dpkg-dev nvme-cli consul maven software-properties-common lsof sed   \
-  iotop strace psmisc valgrind tree htop equivs
+  iotop strace psmisc valgrind tree htop equivs ncat nmap
 
 pip install PrettyTable matplotlib seaborn
 
@@ -173,6 +173,13 @@ pkgname="terraform_1.13.4_linux_$(dpkg --print-architecture).zip"               
   && wget -O hcl2json https://github.com/tmccombs/hcl2json/releases/download/v0.6.8/hcl2json_linux_"$(dpkg --print-architecture)"              \
   && chmod +x hcl2json && mv hcl2json /usr/bin                                                                                                 \
   && which terraform terragrunt hcl2json
+
+# install cosbench
+wget https://github.com/intel-cloud/cosbench/releases/download/v0.4.2.c4/0.4.2.c4.zip   \
+  && unzip -q 0.4.2.c4.zip                                                              \
+  && mv 0.4.2.c4 /usr/bin/cosbench-0.4.2.c4                                             \
+  && chmod +x /usr/bin/cosbench-0.4.2.c4/*.sh                                           \
+  && rm -rf 0.4.2.c4.zip
 
 # install vim with YCM
 git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime                    \
