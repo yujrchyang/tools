@@ -214,9 +214,11 @@ pkgname="OpenJDK8U-jdk_$(dpkg --print-architecture | sed -e 's/amd64/x64/' -e 's
 source $HOME/.zshrc && echo $PATH
 
 # install kafka
-wget https://ocs-cn-south1.heytapcs.com/blobstore/kafka_2.13-3.1.0.tgz          \
-  && tar -zxf kafka_2.13-3.1.0.tgz -C /usr/bin                                  \
-  && rm -rf kafka_2.13-3.1.0.tgz
+wget https://ocs-cn-south1.heytapcs.com/blobstore/kafka_2.13-3.1.0.tgz                                      \
+  && tar -zxf kafka_2.13-3.1.0.tgz -C /usr/bin                                                              \
+  && rm -rf kafka_2.13-3.1.0.tgz                                                                            \
+  && wget https://repo1.maven.org/maven2/log4j/apache-log4j-extras/1.2.17/apache-log4j-extras-1.2.17.jar    \
+  && mv apache-log4j-extras-1.2.17.jar /usr/bin/kafka_2.13-3.1.0/libs/log4j-extras-1.2.17.jar
 
 # install clickhouse
 # vim absl/debugging/failure_signal_handler.cc
