@@ -60,10 +60,11 @@ apt install -y                                                                  
   iotop strace psmisc valgrind tree htop equivs ncat nmap golang                \
   openjdk-8-jdk openjdk-8-jre openjdk-11-jdk openjdk-11-jre
 
-pip install PrettyTable matplotlib seaborn
-
 # update-alternatives --config java
 java -version
+
+# install python pkgs
+pip install PrettyTable matplotlib seaborn
 
 # setup .bashrc
 tee -a $HOME/.bashrc <<-'EOF'
@@ -162,6 +163,7 @@ pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      
   && mv go /usr/lib/go-1.24                                                                                                               \
   && update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt     \
   && update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt     \
+  && go version                                                                                                                           \
   && go env -w GOPATH=/opt/go                                                                                                             \
   && mkdir -p $HOME/.config/go                                                                                                            \
   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                                                                             \
@@ -194,8 +196,9 @@ go install github.com/google/pprof@latest                                       
   && go install github.com/golang/mock/mockgen@latest
 
 # install rust
-curl https://sh.rustup.rs -sSf | sh -s -- -y  \
-  && . $HOME/.cargo/env                       \
+curl https://sh.rustup.rs -sSf | sh -s -- -y                                    \
+  && . $HOME/.cargo/env                                                         \
+  && rustc --version                                                            \
   && rustup component add rust-src rust-analyzer-preview
 
 # install terraform
