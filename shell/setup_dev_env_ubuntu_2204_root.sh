@@ -153,9 +153,15 @@ EOF
 source $HOME/.zshrc
 
 # install go 1.24
-## update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt
-## update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt
-## update-alternatives --install /usr/bin/go go /usr/lib/go-1.25/bin/go 125 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.25/bin/gofmt
+## add-apt-repository ppa:longsleep/golang-backports                               \
+##   && apt update                                                                 \
+##   && apt install -y golang                                                      \
+##   && go env -w GOPATH=/opt/go                                                   \
+##   && mkdir -p $HOME/.config/go                                                  \
+##   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
+##   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
+##   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
+
 pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                                                                                \
   && wget https://go.dev/dl/$pkgname                                                                                                      \
   && tar -zxf $pkgname                                                                                                                    \
@@ -168,16 +174,8 @@ pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      
   && mkdir -p $HOME/.config/go                                                                                                            \
   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                                                                             \
   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile                                                                     \
-  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
-
-## add-apt-repository ppa:longsleep/golang-backports                               \
-##   && apt update                                                                 \
-##   && apt install -y golang                                                      \
-##   && go env -w GOPATH=/opt/go                                                   \
-##   && mkdir -p $HOME/.config/go                                                  \
-##   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
-##   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
-##   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
+  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc                                                              \
+  && go env GOPATH GOROOT
 
 # update path
 source $HOME/.zshrc && echo $PATH
