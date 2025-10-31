@@ -57,11 +57,52 @@ apt install -y                                                                  
   libclang-12-dev libdw-dev bpfcc-tools bpftrace librados-dev librbd-dev        \
   iputils-ping nghttp2 libnghttp2-dev libssl-dev                                \
   fakeroot dpkg-dev nvme-cli consul maven software-properties-common lsof sed   \
-  iotop strace psmisc valgrind tree htop equivs ncat nmap
+  iotop strace psmisc valgrind tree htop equivs ncat nmap golang                \
+  openjdk-8-jdk openjdk-8-jre openjdk-11-jdk openjdk-11-jre
 
 pip install PrettyTable matplotlib seaborn
 
+# update-alternatives --config java
+java -version
+
+# setup .bashrc
+tee -a $HOME/.bashrc <<-'EOF'
+
+function git_branch {
+    branch="`git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //"`"
+    if [ "${branch}" != "" ];then
+        if [ "${branch}" = "(no branch)" ];then
+            branch="(`git rev-parse --short HEAD`...)"
+        fi
+        echo " ($branch)"
+    fi
+}
+export PS1='[\u@\h \[\033[01;36m\]\W\[\033[01;32m\]$(git_branch)\[\033[00m\]] \$ '
+
+alias rm='rm -rf'
+alias ..='cd ..'
+alias la='exa --long --header --group --modified --color-scale --all --sort=type'
+alias ll='exa --long --header --group --modified --color-scale --sort=type'
+alias ls='exa'
+alias gs='git status'
+alias gaa='git add .'
+alias gcm='git commit -m'
+alias gp='git push'
+
+export TERM=xterm-256color
+
+export USE_CCACHE=1
+export CCACHE_SLOPPINESS=file_macro,include_file_mtime,time_macros
+export CCACHE_UMASK=002
+
+EOF
+
+source $HOME/.bashrc
+
 # enable proxy
+## ip=
+## export https_proxy=http://$ip:7890;export http_proxy=http://$ip:7890;export all_proxy=socks5://$ip:7890
+## curl https://www.google.com
 
 # rebuild git
 mkdir git-openssl && cd git-openssl                                                                 \
@@ -79,8 +120,8 @@ mkdir git-openssl && cd git-openssl                                             
 
 # zsh
 # sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"                                   \
-  && git clone https://github.com/zsh-users/zsh-completions $HOME/.oh-my-zsh/custom/plugins/zsh-completions                       \
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+git clone https://github.com/zsh-users/zsh-completions $HOME/.oh-my-zsh/custom/plugins/zsh-completions                            \
   && git clone https://github.com/zsh-users/zsh-autosuggestions $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions               \
   && git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
@@ -111,44 +152,38 @@ EOF
 source $HOME/.zshrc
 
 # install go 1.24
-pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                      \
-  && wget https://go.dev/dl/$pkgname                                            \
-  && tar -zxf $pkgname                                                          \
-  && rm -rf $pkgname                                                            \
-  && mv go /usr/lib/go-1.24                                                     \
-  && ln -s /usr/lib/go-1.24/bin/go /usr/bin/go                                  \
-  && ln -s /usr/lib/go-1.24/bin/gofmt /usr/bin/gofmt                            \
-  && go env -w GOROOT=/usr/lib/go-1.24                                          \
-  && go env -w GOPATH=/opt/go                                                   \
-  && mkdir -p $HOME/.config/go                                                  \
-  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
-  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
+## update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt
+## update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt
+## update-alternatives --install /usr/bin/go go /usr/lib/go-1.25/bin/go 125 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.25/bin/gofmt
+pkgname=go1.24.9.linux-$(dpkg --print-architecture).tar.gz                                                                                \
+  && wget https://go.dev/dl/$pkgname                                                                                                      \
+  && tar -zxf $pkgname                                                                                                                    \
+  && rm -rf $pkgname                                                                                                                      \
+  && mv go /usr/lib/go-1.24                                                                                                               \
+  && update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt     \
+  && update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt     \
+  && go env -w GOPATH=/opt/go                                                                                                             \
+  && mkdir -p $HOME/.config/go                                                                                                            \
+  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                                                                             \
+  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile                                                                     \
   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
-# update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt
-# update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt
-# update-alternatives --install /usr/bin/go go /usr/lib/go-1.25/bin/go 125 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.25/bin/gofmt
-add-apt-repository ppa:longsleep/golang-backports -y                            \
-  && apt update                                                                 \
-  && apt install -y golang-1.24                                                 \
-  && go env -w GOPATH=/opt/go                                                   \
-  && mkdir -p $HOME/.config/go                                                  \
-  && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
-  && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
-  && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
+## add-apt-repository ppa:longsleep/golang-backports                               \
+##   && apt update                                                                 \
+##   && apt install -y golang                                                      \
+##   && go env -w GOPATH=/opt/go                                                   \
+##   && mkdir -p $HOME/.config/go                                                  \
+##   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                   \
+##   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile           \
+##   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
 # update path
 source $HOME/.zshrc && echo $PATH
 
-# remove it, in case of ceph install go-1.25
-add-apt-repository --remove ppa:longsleep/golang-backports -y                   \
-  && rm -f /etc/apt/trusted.gpg.d/longsleep-ubuntu-golang-backports.gpg         \
-  && apt update
-
 # install golangci-lint
 # go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0 \
-  && golangci-lint --version
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0
+golangci-lint --version
 
 # go install github.com/axw/gocov/gocov@latest
 go install github.com/google/pprof@latest                                       \
@@ -174,13 +209,6 @@ pkgname="terraform_1.13.4_linux_$(dpkg --print-architecture).zip"               
   && chmod +x hcl2json && mv hcl2json /usr/bin                                                                                                 \
   && which terraform terragrunt hcl2json
 
-# install cosbench
-wget https://github.com/intel-cloud/cosbench/releases/download/v0.4.2.c4/0.4.2.c4.zip   \
-  && unzip -q 0.4.2.c4.zip                                                              \
-  && mv 0.4.2.c4 /usr/bin/cosbench-0.4.2.c4                                             \
-  && chmod +x /usr/bin/cosbench-0.4.2.c4/*.sh                                           \
-  && rm -rf 0.4.2.c4.zip
-
 # install vim with YCM
 git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime                    \
   && cd $HOME/.vim_runtime                                                              \
@@ -200,25 +228,19 @@ pkgname="consul_1.11.4_linux_$(dpkg --print-architecture).zip"                  
   && mv -f consul /usr/bin                                                      \
   && which consul
 
-## install open-jdk
-pkgname="OpenJDK8U-jdk_$(dpkg --print-architecture | sed -e 's/amd64/x64/' -e 's/arm64/aarch64/')_linux_hotspot_8u322b06.tar.gz"      \
-  && wget https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u322-b06/$pkgname                                       \
-  && tar -zxf $pkgname -C /usr/bin                                                                                                    \
-  && rm -rf $pkgname                                                                                                                  \
-  && mkdir -p $HOME/.config/java                                                                                                      \
-  && echo 'export JAVA_HOME=/usr/bin/jdk8u322-b06' >> $HOME/.config/java/profile                                                      \
-  && echo 'export PATH=$JAVA_HOME/bin:$PATH' >> $HOME/.config/java/profile                                                            \
-  && echo 'export CLASSPATH=$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar' >> $HOME/.config/java/profile                             \
-  && echo '. "$HOME/.config/java/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
-
-source $HOME/.zshrc && echo $PATH
-
 # install kafka
 wget https://ocs-cn-south1.heytapcs.com/blobstore/kafka_2.13-3.1.0.tgz                                      \
   && tar -zxf kafka_2.13-3.1.0.tgz -C /usr/bin                                                              \
   && rm -rf kafka_2.13-3.1.0.tgz                                                                            \
   && wget https://repo1.maven.org/maven2/log4j/apache-log4j-extras/1.2.17/apache-log4j-extras-1.2.17.jar    \
   && mv apache-log4j-extras-1.2.17.jar /usr/bin/kafka_2.13-3.1.0/libs/log4j-extras-1.2.17.jar
+
+# install cosbench
+wget https://github.com/intel-cloud/cosbench/releases/download/v0.4.2.c4/0.4.2.c4.zip   \
+  && unzip -q 0.4.2.c4.zip                                                              \
+  && mv 0.4.2.c4 /usr/bin/cosbench-0.4.2.c4                                             \
+  && chmod +x /usr/bin/cosbench-0.4.2.c4/*.sh                                           \
+  && rm -rf 0.4.2.c4.zip
 
 # install clickhouse
 # vim absl/debugging/failure_signal_handler.cc
@@ -261,10 +283,11 @@ wget -O leveldb-1.22.tar.gz https://github.com/google/leveldb/archive/refs/tags/
   && tar -zxf leveldb-1.22.tar.gz                                                             \
   && cd leveldb-1.22                                                                          \
   && mkdir build && cd build                                                                  \
-  && cmake .. -DCMAKE_BUILD_TYPE=Release                                                      \
+  && cmake .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_BUILD_TYPE=Release    \
   && make && make install                                                                     \
   && cd ../.. && rm -rf leveldb-1.22*
 
+# install seastar deps
 git clone --depth=1 --branch seastar-22.11.0 https://github.com/scylladb/seastar.git seastar-22.11.0  \
   && cd seastar-22.11.0                                                                               \
   && ./install-dependencies.sh                                                                        \
