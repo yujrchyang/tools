@@ -188,7 +188,9 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install
 golangci-lint --version
 
 # go install github.com/axw/gocov/gocov@latest
-go install github.com/google/pprof@latest && \
+go install golang.org/x/tools/gopls@latest && \
+  go install honnef.co/go/tools/cmd/staticcheck@latest && \
+  go install github.com/google/pprof@latest && \
   go install mvdan.cc/gofumpt@latest && \
   go install github.com/AlekSi/gocov-xml@latest && \
   go install github.com/matm/gocov-html/cmd/gocov-html@latest && \
