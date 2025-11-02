@@ -71,6 +71,11 @@ $SUDO apt install -y                                                            
   iotop strace psmisc valgrind tree htop equivs ncat nmap golang                \
   openjdk-8-jdk openjdk-8-jre openjdk-11-jdk openjdk-11-jre
 
+# for desktop virtualbox
+$SUDO apt install gcc-12 g++-12 && \
+  $SUDO ln -sf /usr/bin/gcc-12 /usr/bin/gcc && \
+  $SUDO ln -sf /usr/bin/g++-12 /usr/bin/g++
+
 # update-alternatives --config java
 java -version
 
