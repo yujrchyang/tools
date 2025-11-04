@@ -69,7 +69,7 @@ $SUDO apt install -y                                                            
   iputils-ping nghttp2 libnghttp2-dev libssl-dev debian-keyring                 \
   fakeroot dpkg-dev nvme-cli consul maven software-properties-common lsof sed   \
   iotop strace psmisc valgrind tree htop equivs ncat nmap golang                \
-  openjdk-8-jdk openjdk-8-jre openjdk-11-jdk openjdk-11-jre
+  openjdk-11-jdk openjdk-11-jre openjdk-8-jdk openjdk-8-jre
 
 # for desktop virtualbox
 $SUDO apt install gcc-12 g++-12 && \
@@ -137,6 +137,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
 # setup .zshrc
+sed -i 's/^ZSH_THEME=.*/ZSH_THEME="gentoo"/' $HOME/.zshrc
 sed -i 's/^plugins=.*/plugins=(git zsh-completions zsh-autosuggestions zsh-syntax-highlighting)/' $HOME/.zshrc
 tee -a $HOME/.zshrc <<-'EOF'
 
