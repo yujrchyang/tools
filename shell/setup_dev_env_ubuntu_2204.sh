@@ -85,6 +85,10 @@ python3 -m pip install --user PrettyTable matplotlib seaborn
 # setup .bashrc
 tee -a $HOME/.bashrc <<-'EOF'
 
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LESSCHARSET=utf-8
+
 function git_branch {
     branch="`git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //"`"
     if [ "${branch}" != "" ];then
@@ -140,6 +144,10 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 sed -i 's/^ZSH_THEME=.*/ZSH_THEME="gentoo"/' $HOME/.zshrc
 sed -i 's/^plugins=.*/plugins=(git zsh-completions zsh-autosuggestions zsh-syntax-highlighting)/' $HOME/.zshrc
 tee -a $HOME/.zshrc <<-'EOF'
+
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LESSCHARSET=utf-8
 
 setopt rmstarsilent
 
