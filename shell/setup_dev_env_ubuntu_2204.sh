@@ -53,23 +53,45 @@ EOF
 
 # install tools
 $SUDO apt update && $SUDO apt -y install tzdata
-$SUDO apt install -y                                                            \
-  vim git wget curl net-tools apt-file libtool smartmontools sysstat            \
-  gdb gcc g++ make automake cmake ninja-build build-essential nasm              \
-  python3 python3-dev python3-sphinx python3-pip nodejs dosfstools xfsprogs     \
-  ack fonts-powerline vim-nox mono-complete openjdk-17-jdk openjdk-17-jre       \
-  npm llvm clang clangd libnuma-dev libzstd-dev libzbd-dev bear ccache          \
-  lua5.4 liblua5.4-dev tcl sqlite3 libsqlite3-dev e2fsprogs                     \
-  systemtap-sdt-dev libbpfcc-dev libbpf-dev libclang-dev bison flex             \
-  libelf-dev libcereal-dev libgtest-dev libgmock-dev asciidoctor                \
-  libthrift-dev texinfo rdma-core libsystemd-dev libblkid-dev libaio-dev        \
-  libsnappy-dev lz4 exa bc dwarves jq libspdlog-dev diffutils unzip             \
-  libprotobuf-dev protobuf-compiler zsh netcat libboost-all-dev gdisk           \
-  libclang-12-dev libdw-dev bpfcc-tools bpftrace librados-dev librbd-dev        \
-  iputils-ping nghttp2 libnghttp2-dev libssl-dev debian-keyring                 \
-  fakeroot dpkg-dev nvme-cli consul maven software-properties-common lsof sed   \
-  iotop strace psmisc valgrind tree htop equivs ncat nmap golang                \
-  openjdk-11-jdk openjdk-11-jre openjdk-8-jdk openjdk-8-jre
+basic_tools=(
+  vim git wget curl net-tools iputils-ping lsof sed tree htop
+  iotop strace psmisc valgrind jq bc exa netcat ncat nmap
+  unzip diffutils dosfstools xfsprogs e2fsprogs gdisk
+  smartmontools nvme-cli sysstat rdma-core
+  asciidoctor texinfo fakeroot dpkg-dev equivs debian-keyring
+  apt-file zsh software-properties-common locales
+)
+build_tools=(
+  gcc g++ make automake cmake ninja-build build-essential nasm
+  clang clangd llvm libclang-dev bison flex
+  gdb bear ccache maven libtool
+)
+dev_deps=(
+  python3 python3-dev python3-sphinx python3-pip
+  nodejs npm golang
+  openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
+  lua5.4 liblua5.4-dev tcl sqlite3 libsqlite3-dev
+
+  systemtap-sdt-dev libbpfcc-dev libbpf-dev libelf-dev dwarves
+  bpfcc-tools bpftrace
+  librados-dev librbd-dev
+  libnuma-dev libzstd-dev libzbd-dev lz4 libsnappy-dev
+  libaio-dev libdw-dev libblkid-dev libsystemd-dev
+  libcereal-dev libgtest-dev libgmock-dev
+  libthrift-dev libprotobuf-dev protobuf-compiler
+  libssl-dev libnghttp2-dev nghttp2
+  libboost-all-dev
+
+  libspdlog-dev
+)
+$SUDO apt install -y "${basic_tools[@]}"
+$SUDO apt install -y "${build_tools[@]}"
+$SUDO apt install -y "${dev_deps[@]}"
+$SUDO apt install -y linux-headers-$(uname -r) kmod
+
+# update locale
+$SUDO locale-gen en_US.UTF-8
+$SUDO update-locale LANG=en_US.UTF-8
 
 # for desktop virtualbox
 $SUDO apt install gcc-12 g++-12 && \
@@ -157,9 +179,6 @@ alias la='exa --long --header --group --modified --color-scale --all --sort=type
 alias ll='exa --long --header --group --modified --color-scale --sort=type'
 alias ls='exa'
 alias gs='git status'
-alias gaa='git add .'
-alias gcm='git commit -m'
-alias gp='git push'
 
 export TERM=xterm-256color
 
