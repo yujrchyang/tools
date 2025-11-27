@@ -53,6 +53,8 @@ EOF
 
 # install tools
 $SUDO apt update && $SUDO apt -y install tzdata
+$SUDO timedatectl set-timezone Asia/Shanghai
+
 basic_tools=(
   vim git wget curl net-tools iputils-ping lsof sed tree htop
   iotop strace psmisc valgrind jq bc exa netcat ncat nmap
