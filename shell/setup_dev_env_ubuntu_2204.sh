@@ -59,7 +59,7 @@ basic_tools=(
   vim git wget curl net-tools iputils-ping lsof sed tree htop
   iotop strace psmisc valgrind jq bc exa netcat ncat nmap
   unzip diffutils dosfstools xfsprogs e2fsprogs gdisk
-  smartmontools nvme-cli sysstat rdma-core
+  smartmontools nvme-cli sysstat rdma-core shellcheck
   asciidoctor texinfo fakeroot dpkg-dev equivs debian-keyring
   apt-file zsh software-properties-common locales
 )
@@ -218,8 +218,8 @@ go env GOPATH GOROOT && \
   source $HOME/.zshrc && echo $PATH
 
 # install golangci-lint
-# go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.5.0
+# https://golangci-lint.run/docs/welcome/install/#local-installation
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
 golangci-lint --version
 
 # go install github.com/axw/gocov/gocov@latest
