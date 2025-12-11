@@ -20,14 +20,14 @@ $SUDO cp /etc/apt/sources.list /etc/apt/sources.list.bak.$(date +%F)
 # update apt source for x86
 $SUDO tee /etc/apt/sources.list <<-'EOF'
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
-deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
-deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
-deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
 
 deb http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
-deb-src http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
+# deb-src http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
 
 # deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-proposed main restricted universe multiverse
 # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-proposed main restricted universe multiverse
@@ -37,14 +37,14 @@ EOF
 # update apt source for arm
 $SUDO tee /etc/apt/sources.list <<-'EOF'
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy main restricted universe multiverse
-deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy main restricted universe multiverse
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-updates main restricted universe multiverse
-deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-updates main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-updates main restricted universe multiverse
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-backports main restricted universe multiverse
-deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-backports main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-backports main restricted universe multiverse
 
 deb http://ports.ubuntu.com/ubuntu-ports/ jammy-security main restricted universe multiverse
-deb-src http://ports.ubuntu.com/ubuntu-ports/ jammy-security main restricted universe multiverse
+# deb-src http://ports.ubuntu.com/ubuntu-ports/ jammy-security main restricted universe multiverse
 
 # deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-proposed main restricted universe multiverse
 # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-proposed main restricted universe multiverse
@@ -65,7 +65,7 @@ basic_tools=(
 )
 build_tools=(
   gcc g++ make automake cmake ninja-build build-essential nasm
-  clang clangd llvm libclang-dev bison flex
+  clang clangd libclang-dev llvm bison flex
   gdb bear ccache maven libtool
 )
 dev_deps=(
@@ -347,10 +347,10 @@ git clone --depth=1 --branch v24.01 https://github.com/spdk/spdk.git spdk-24.01 
   cd .. && rm -rf spdk-24.01
 
 # install ceph deps
-git clone --depth=1 --branch v17.2.8 https://github.com/ceph/ceph ceph-v17.2.8 && \
-  cd ceph-v17.2.8 && \
+git clone --depth=1 --branch v17.2.9 https://github.com/ceph/ceph ceph-v17.2.9 && \
+  cd ceph-v17.2.9 && \
   ./install-deps.sh && \
-  cd .. && rm -rf ceph-v17.2.8
+  cd .. && rm -rf ceph-v17.2.9
 
 $SUDO cp /sys/kernel/btf/vmlinux /usr/lib/modules/"$(uname -r)"/build/
 $SUDO vim /etc/default/grub
