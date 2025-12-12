@@ -1,0 +1,11 @@
+[Unit]
+Description=Fake CPU Load Service
+After=network.target
+
+[Service]
+ExecStart=/opt/fake_cpu_load.sh
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
