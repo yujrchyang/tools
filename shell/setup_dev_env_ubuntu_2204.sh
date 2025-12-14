@@ -202,7 +202,7 @@ source $HOME/.zshrc
 ##   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile        \
 ##   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
-pkgname=go1.24.9.linux-$ARCH.tar.gz && \
+pkgname=go1.24.11.linux-$ARCH.tar.gz && \
   wget https://go.dev/dl/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
   $SUDO mv go /usr/lib/go-1.24 && \
@@ -273,9 +273,9 @@ pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) &
   $SUDO ln -s /usr/lib/nvim-0.11.5-linux-$pkgarch/bin/nvim /usr/bin && \
   which nvim
 
-git clone git@github.com:yujrchyang/neovimrc.git $HOME/.config/nvim
-# nvim --headless +"Lazy! sync" +qa
-# nvim
+git clone https://github.com/yujrchyang/neovimrc.git $HOME/.config/nvim
+nvim --headless +"Lazy! sync" +qa
+nvim
 
 # install blobstore deps x86
 ## install consul
