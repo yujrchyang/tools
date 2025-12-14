@@ -61,7 +61,7 @@ basic_tools=(
   unzip diffutils dosfstools xfsprogs e2fsprogs gdisk
   smartmontools nvme-cli sysstat rdma-core shellcheck
   asciidoctor texinfo fakeroot dpkg-dev equivs debian-keyring
-  apt-file zsh software-properties-common locales
+  apt-file zsh software-properties-common locales ripgrep fd-find
 )
 build_tools=(
   gcc g++ make automake cmake ninja-build build-essential nasm
@@ -104,7 +104,7 @@ $SUDO apt install gcc-12 g++-12 && \
 java -version
 
 # install python pkgs
-python3 -m pip install --user PrettyTable matplotlib seaborn
+python3 -m pip install --user pyright ruff PrettyTable matplotlib seaborn
 
 # setup .bashrc
 tee -a $HOME/.bashrc <<-'EOF'
@@ -236,7 +236,7 @@ go install golang.org/x/tools/gopls@latest && \
 curl https://sh.rustup.rs -sSf | sh -s -- -y && \
   . $HOME/.cargo/env && \
   rustc --version && \
-  rustup component add rust-src rust-analyzer-preview
+  rustup component add rust-src rust-analyzer rust-analyzer-preview
 
 # install terraform
 pkgname=terraform_1.13.4_linux_$ARCH.zip && \
@@ -263,6 +263,19 @@ git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
 # install vim without YCM
 git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
   sh $HOME/.vim_runtime/install_awesome_vimrc.sh
+
+# install nvim
+pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
+  pkgname=nvim-linux-$pkgarch.tar.gz && \
+  wget https://github.com/neovim/neovim/releases/download/v0.11.5/$pkgname && \
+  tar -zxf $pkgname && rm -rf $pkgname && \
+  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.5-linux-$pkgarch && \
+  $SUDO ln -s /usr/lib/nvim-0.11.5-linux-$pkgarch/bin/nvim /usr/bin && \
+  which nvim
+
+git clone git@github.com:yujrchyang/neovimrc.git $HOME/.config/nvim
+# nvim --headless +"Lazy! sync" +qa
+# nvim
 
 # install blobstore deps x86
 ## install consul
