@@ -70,7 +70,7 @@ build_tools=(
 )
 dev_deps=(
   python3 python3-dev python3-sphinx python3-pip
-  nodejs npm golang
+  nodejs npm golang php composer
   openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
   lua5.4 liblua5.4-dev tcl sqlite3 libsqlite3-dev
 
@@ -265,6 +265,11 @@ git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
   sh $HOME/.vim_runtime/install_awesome_vimrc.sh
 
 # install nvim
+curl -sL install-node.vercel.app/lts | bash
+curl -fsSL https://install.julialang.org | sh
+npm install -g neovim
+cargo install --locked tree-sitter-cli
+
 pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
   pkgname=nvim-linux-$pkgarch.tar.gz && \
   wget https://github.com/neovim/neovim/releases/download/v0.11.5/$pkgname && \
