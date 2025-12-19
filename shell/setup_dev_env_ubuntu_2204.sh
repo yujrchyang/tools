@@ -278,6 +278,13 @@ pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) &
   $SUDO ln -s /usr/lib/nvim-0.11.5-linux-$pkgarch/bin/nvim /usr/bin && \
   which nvim
 
+# arm
+mkdir -p $HOME/.local/share/nvim/mason/packages/clangd/mason-schemas
+cd $HOME/.local/share/nvim/mason/packages/clangd
+curl -qs https://raw.githubusercontent.com/clangd/vscode-clangd/master/package.json | jq .contributes.configuration > mason-schemas/lsp.json
+echo '{"schema_version":"1.1","primary_source":{"type":"local"},"name":"clangd","links":{"share":{"mason-schemas/lsp/clangd.json":"mason-schemas/lsp.json"}}}' > mason-receipt.json
+cd $WORKDIR
+
 git clone https://github.com/yujrchyang/neovimrc.git $HOME/.config/nvim
 nvim --headless +"Lazy! sync" +qa
 nvim
