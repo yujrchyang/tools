@@ -265,10 +265,18 @@ git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
   sh $HOME/.vim_runtime/install_awesome_vimrc.sh
 
 # install nvim
-curl -sL install-node.vercel.app/lts | bash
-curl -fsSL https://install.julialang.org | sh
-npm install -g neovim
-cargo install --locked tree-sitter-cli
+## install dep node.js
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
+  \. "$HOME/.nvm/nvm.sh" && \
+  nvm install 24 && \
+  node -v && \
+  npm -v
+
+## install dep julialang/neovim/tree-sitter
+curl -fsSL https://install.julialang.org | sh && \
+  . $HOME/.zshrc && \
+  npm install -g neovim && \
+  cargo install --locked tree-sitter-cli
 
 pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
   pkgname=nvim-linux-$pkgarch.tar.gz && \
@@ -279,11 +287,11 @@ pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) &
   which nvim
 
 # arm
-mkdir -p $HOME/.local/share/nvim/mason/packages/clangd/mason-schemas
-cd $HOME/.local/share/nvim/mason/packages/clangd
-curl -qs https://raw.githubusercontent.com/clangd/vscode-clangd/master/package.json | jq .contributes.configuration > mason-schemas/lsp.json
-echo '{"schema_version":"1.1","primary_source":{"type":"local"},"name":"clangd","links":{"share":{"mason-schemas/lsp/clangd.json":"mason-schemas/lsp.json"}}}' > mason-receipt.json
-cd $WORKDIR
+mkdir -p $HOME/.local/share/nvim/mason/packages/clangd/mason-schemas && \
+  cd $HOME/.local/share/nvim/mason/packages/clangd && \
+  curl -qs https://raw.githubusercontent.com/clangd/vscode-clangd/master/package.json | jq .contributes.configuration > mason-schemas/lsp.json && \
+  echo '{"schema_version":"1.1","primary_source":{"type":"local"},"name":"clangd","links":{"share":{"mason-schemas/lsp/clangd.json":"mason-schemas/lsp.json"}}}' > mason-receipt.json && \
+  cd $WORKDIR
 
 git clone https://github.com/yujrchyang/neovimrc.git $HOME/.config/nvim
 nvim --headless +"Lazy! sync" +qa
