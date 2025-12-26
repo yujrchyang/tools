@@ -230,7 +230,8 @@ go install golang.org/x/tools/gopls@latest && \
   go install github.com/AlekSi/gocov-xml@latest && \
   go install github.com/matm/gocov-html/cmd/gocov-html@latest && \
   go install github.com/go-delve/delve/cmd/dlv@latest && \
-  go install github.com/golang/mock/mockgen@latest
+  go install github.com/golang/mock/mockgen@latest && \
+  go install github.com/charmbracelet/glow/v2@latest
 
 # install rust
 curl https://sh.rustup.rs -sSf | sh -s -- -y && \
