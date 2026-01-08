@@ -65,7 +65,7 @@ basic_tools=(
 )
 build_tools=(
   gcc g++ make automake cmake ninja-build build-essential nasm
-  clang clangd libclang-dev llvm bison flex
+  clang clang-tidy clangd libclang-dev llvm bison flex
   gdb bear ccache maven libtool
 )
 dev_deps=(
