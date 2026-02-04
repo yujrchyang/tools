@@ -1,0 +1,44 @@
+{
+    "bind_addr": ":8900",
+    "cluster_id": 1,
+    "idc": "z1",
+    "rack": "testrack",
+    "host": "http://127.0.0.1:8900",
+    "dropped_bid_record": {
+        "dir": "./run/log/dropped-z1"
+    },
+    "disks": [
+        {"path": "./run/lib/disks/disk11", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk12", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk13", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk14", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk15", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk16", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk17", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk18", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk19", "auto_format": true, "disable_sync": true}
+    ],
+    "clustermgr": {
+        "hosts": [
+            "http://127.0.0.1:9998",
+            "http://127.0.0.1:9999",
+            "http://127.0.0.1:10000"
+        ]
+    },
+    "disk_config":{
+        "set_default_switch": true,
+        "must_mount_point": false,
+        "data_qos": {
+            "read_mbps": 100,
+            "write_mbps": 60,
+            "background_mbps": 20
+        }
+    },
+    "log": {
+        "level": "info",
+        "filename": "./run/log/blobnode-z1.log"
+    },
+    "auditlog":{
+        "logdir":""
+    }
+}

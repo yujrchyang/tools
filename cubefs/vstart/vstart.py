@@ -131,7 +131,7 @@ class CommandExecutor:
 class DirectoryManager:
     def __init__(self, cfg_dir: str) -> None:
         VSTART_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-        self.bin_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, '../build/bin/blobstore'))
+        self.bin_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, '../../build/bin/blobstore'))
         self.lib_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, './run/lib'))
         self.log_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, './run/log'))
         self.cfg_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, cfg_dir))
@@ -189,7 +189,8 @@ class ConfigFileManager:
 
 
 class ServiceBase(ABC):
-    def __init__(self, dir_manager: DirectoryManager, service_name: str, cfg_file: str, start_log_file: str) -> None:
+    def __init__(self, args: argparse.Namespace, dir_manager: DirectoryManager, service_name: str, cfg_file: str, start_log_file: str) -> None:
+        self.args = args
         self.dir_manager = dir_manager
         self.service_name = service_name
         self.cfg_file = f"{self.dir_manager.cfg_dir}/{cfg_file}"
@@ -295,7 +296,7 @@ class ServiceBlobnode(ServiceBase):
         url = f"http://127.0.0.1{port}/stat"
         while True:
             result = CommandExecutor.run_http_get_json(url)
-            if isinstance(result, list) and len(result) == 8:
+            if isinstance(result, list) and len(result) >= 8:
                 print("blobnode started")
                 break
             time.sleep(1)
@@ -315,7 +316,10 @@ class ServiceProxy(ServiceBase):
         print("checking proxy ...")
         proxy_config = ConfigFileManager.get_json_data(self.cfg_file)
         port = proxy_config['bind_addr']
-        url = f"http://127.0.0.1{port}/volume/list?code_mode=11"
+        codemode = 11
+        if self.args.az_num == 'two':
+            codemode = 4
+        url = f"http://127.0.0.1{port}/volume/list?code_mode={codemode}"
         while True:
             result = CommandExecutor.run_http_get_json(url)
             if isinstance(result, dict) and 'vids' in result and len(result['vids']) > 0:
@@ -410,30 +414,50 @@ class VstartManager:
 
     def setup_services_one_az(self) -> None:
         self.services_depends = [
-            ServiceConsul(self.dir_manager, "/usr/bin/consul", "", "consul-start.log"),
-            ServiceKafka(self.dir_manager, "/usr/bin/kafka_2.13-3.1.0", "", "kafka-start.log"),
+            ServiceConsul(self.args, self.dir_manager, "/usr/bin/consul", "", "consul-start.log"),
+            ServiceKafka(self.args, self.dir_manager, "/usr/bin/kafka_2.13-3.1.0", "", "kafka-start.log"),
         ]
         self.services_clustermgr = [
-            ServiceClustermgr(self.dir_manager, "clustermgr1.json", "clustermgr1.json", "clustermgr1-start.log"),
-            ServiceClustermgr(self.dir_manager, "clustermgr2.json", "clustermgr2.json", "clustermgr2-start.log"),
-            ServiceClustermgr(self.dir_manager, "clustermgr3.json", "clustermgr3.json", "clustermgr3-start.log"),
+            ServiceClustermgr(self.args, self.dir_manager, "clustermgr1.json", "clustermgr1.json", "clustermgr1-start.log"),
+            ServiceClustermgr(self.args, self.dir_manager, "clustermgr2.json", "clustermgr2.json", "clustermgr2-start.log"),
+            ServiceClustermgr(self.args, self.dir_manager, "clustermgr3.json", "clustermgr3.json", "clustermgr3-start.log"),
         ]
         self.services_blobnode = [
-            ServiceBlobnode(self.dir_manager, "blobnode.json", "blobnode.json", "blobnode-start.log"),
+            ServiceBlobnode(self.args, self.dir_manager, "blobnode.json", "blobnode.json", "blobnode-start.log"),
         ]
         self.services_proxy = [
-            ServiceProxy(self.dir_manager, "proxy.json", "proxy.json", "proxy-start.log"),
+            ServiceProxy(self.args, self.dir_manager, "proxy.json", "proxy.json", "proxy-start.log"),
         ]
         self.services_scheduler = [
-            ServiceScheduler(self.dir_manager, "scheduler.json", "scheduler.json", "scheduler-start.log"),
+            ServiceScheduler(self.args, self.dir_manager, "scheduler.json", "scheduler.json", "scheduler-start.log"),
         ]
         self.services_access = [
-            ServiceAccess(self.dir_manager, "access.json", "access.json", "access-start.log"),
+            ServiceAccess(self.args, self.dir_manager, "access.json", "access.json", "access-start.log"),
         ]
 
     def setup_services_two_az(self) -> None:
-        print("Two AZ setup is not implemented yet.")
-        exit(1)
+        self.services_depends = [
+            ServiceConsul(self.args, self.dir_manager, "/usr/bin/consul", "", "consul-start.log"),
+            ServiceKafka(self.args, self.dir_manager, "/usr/bin/kafka_2.13-3.1.0", "", "kafka-start.log"),
+        ]
+        self.services_clustermgr = [
+            ServiceClustermgr(self.args, self.dir_manager, "clustermgr1.json", "clustermgr1.json", "clustermgr1-start.log"),
+            ServiceClustermgr(self.args, self.dir_manager, "clustermgr2.json", "clustermgr2.json", "clustermgr2-start.log"),
+            ServiceClustermgr(self.args, self.dir_manager, "clustermgr3.json", "clustermgr3.json", "clustermgr3-start.log"),
+        ]
+        self.services_blobnode = [
+            ServiceBlobnode(self.args, self.dir_manager, "blobnode-z0.json", "blobnode-z0.json", "blobnode-z0-start.log"),
+            ServiceBlobnode(self.args, self.dir_manager, "blobnode-z1.json", "blobnode-z1.json", "blobnode-z1-start.log"),
+        ]
+        self.services_proxy = [
+            ServiceProxy(self.args, self.dir_manager, "proxy.json", "proxy.json", "proxy-start.log"),
+        ]
+        self.services_scheduler = [
+            ServiceScheduler(self.args, self.dir_manager, "scheduler.json", "scheduler.json", "scheduler-start.log"),
+        ]
+        self.services_access = [
+            ServiceAccess(self.args, self.dir_manager, "access.json", "access.json", "access-start.log"),
+        ]
 
     def setup_services_three_az(self) -> None:
         print("Three AZ setup is not implemented yet.")
