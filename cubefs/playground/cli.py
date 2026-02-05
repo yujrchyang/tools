@@ -3,14 +3,14 @@ import sys
 import argparse
 from typing import Any, List, Dict
 
-import utils_command
+import common
 
 
 class HandleService():
     @staticmethod
     def get_vuid_list_from_cm(host: str, disk_id: int) -> List[Dict[str, Any]]:
         url = f"{host}/volume/unit/list?disk_id={disk_id}"
-        response_data = utils_command.CommandExecutor.run_http_get_json(url)
+        response_data = common.CommandExecutor.run_http_get_json(url)
         if isinstance(response_data, dict) and "volume_unit_infos" in response_data:
             return response_data["volume_unit_infos"]
         return []
@@ -18,7 +18,7 @@ class HandleService():
     @staticmethod
     def get_bid_list_from_bn(host: str, disk_id: int, vuid: int, start_bid: int, status: int = 1, count: int = 10) -> tuple[List[Dict[str, Any]], int]:
         url = f"{host}/shard/list/diskid/{disk_id}/vuid/{vuid}/startbid/{start_bid}/status/{status}/count/{count}"
-        response_data = utils_command.CommandExecutor.run_http_get_json(url)
+        response_data = common.CommandExecutor.run_http_get_json(url)
         if isinstance(response_data, dict) and "shard_infos" in response_data and "next" in response_data:
             return response_data["shard_infos"], response_data["next"]
         return [], -1
@@ -26,11 +26,11 @@ class HandleService():
     @staticmethod
     def delete_shard_from_bn(host: str, disk_id: int, vuid: int, bid: int) -> bool:
         url = f"{host}/shard/markdelete/diskid/{disk_id}/vuid/{vuid}/bid/{bid}"
-        response = utils_command.CommandExecutor.run_http_post(url)
+        response = common.CommandExecutor.run_http_post(url)
         if not response:
             return False
         url = f"{host}/shard/delete/diskid/{disk_id}/vuid/{vuid}/bid/{bid}"
-        return utils_command.CommandExecutor.run_http_post(url)
+        return common.CommandExecutor.run_http_post(url)
 
 
 class CLI:
