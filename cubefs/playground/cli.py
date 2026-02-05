@@ -8,6 +8,14 @@ import common
 
 class HandleService():
     @staticmethod
+    def get_disk_host_from_cm(host: str, disk_id: int) -> str:
+        url = f"{host}/disk/info?disk_id={disk_id}"
+        response_data = common.CommandExecutor.run_http_get_json(url)
+        if isinstance(response_data, dict) and "host" in response_data:
+            return response_data["host"]
+        sys.exit(f"don't get disk {disk_id} info from {host}")
+
+    @staticmethod
     def get_vuid_list_from_cm(host: str, disk_id: int) -> List[Dict[str, Any]]:
         url = f"{host}/volume/unit/list?disk_id={disk_id}"
         response_data = common.CommandExecutor.run_http_get_json(url)
@@ -52,6 +60,9 @@ class CLI:
             sys.exit(1)
 
         print(f"Starting delete shards on disk {self.args.disk_id} ...")
+        # get disk host
+        disk_host = HandleService.get_disk_host_from_cm(self.args.host_cm, self.args.disk_id)
+        # get volume info
         vols = HandleService.get_vuid_list_from_cm(self.args.host_cm, self.args.disk_id)
         ordered_vols = sorted(vols, key=lambda d: d["free"])
         rows = ordered_vols if self.args.number == -1 else ordered_vols[:self.args.number]
@@ -59,10 +70,10 @@ class CLI:
             vuid = vol["vuid"]
             while True:
                 start_bid = 0
-                shards, next = HandleService.get_bid_list_from_bn(self.args.host_bn, self.args.disk_id, vuid, start_bid)
+                shards, next = HandleService.get_bid_list_from_bn(disk_host, self.args.disk_id, vuid, start_bid)
                 for shard in shards:
                     bid = shard["bid"]
-                    success = HandleService.delete_shard_from_bn(self.args.host_bn, self.args.disk_id, vuid, bid)
+                    success = HandleService.delete_shard_from_bn(disk_host, self.args.disk_id, vuid, bid)
                     if success:
                         print(f"Deleted shard: disk_id={self.args.disk_id}, vuid={vuid}, bid={bid}")
                     else:
