@@ -189,10 +189,11 @@ class ConfigFileManager:
 
 
 class ServiceBase(ABC):
-    def __init__(self, args: argparse.Namespace, dir_manager: DirectoryManager, service_name: str, cfg_file: str, start_log_file: str) -> None:
+    def __init__(self, args: argparse.Namespace, dir_manager: DirectoryManager,
+                 process_identifier: str, cfg_file: str, start_log_file: str) -> None:
         self.args = args
         self.dir_manager = dir_manager
-        self.service_name = service_name
+        self.process_identifier = process_identifier
         self.cfg_file = f"{self.dir_manager.cfg_dir}/{cfg_file}"
         self.start_log_file = f"{self.dir_manager.log_dir}/{start_log_file}"
         self.command: List[str] = []
@@ -203,10 +204,10 @@ class ServiceBase(ABC):
         self._check_service()
 
     def stop_service(self) -> None:
-        print(f"stopping {self.service_name} ...")
+        print(f"stopping {self.process_identifier} ...")
         for pid in glob.glob("/proc/[0-9]*"):
             try:
-                if self.service_name in open(f"{pid}/cmdline").read().replace("\0", " "):
+                if self.process_identifier in open(f"{pid}/cmdline").read().replace("\0", " "):
                     os.kill(int(pid.split("/")[-1]), signal.SIGKILL)
             except (FileNotFoundError, ProcessLookupError, PermissionError):
                 pass
@@ -247,8 +248,10 @@ class ServiceKafka(ServiceBase):
             cluster_id = CommandExecutor.run([f"{kafka_path}/bin/kafka-storage.sh", "random-uuid"])
             if cluster_id.endswith('\n') or cluster_id.endswith('\r'):
                 cluster_id = cluster_id[:-1]
-            CommandExecutor.run([f"{kafka_path}/bin/kafka-storage.sh", "format", "-t", cluster_id, "-c", f"{kafka_path}/config/kraft/server.properties"])
-        self.command = [f"{kafka_path}/bin/kafka-server-start.sh", "-daemon", f"{kafka_path}/config/kraft/server.properties"]
+            CommandExecutor.run([f"{kafka_path}/bin/kafka-storage.sh", "format", "-t", cluster_id,
+                                 "-c", f"{kafka_path}/config/kraft/server.properties"])
+        self.command = [f"{kafka_path}/bin/kafka-server-start.sh", "-daemon",
+                        f"{kafka_path}/config/kraft/server.properties"]
 
     def _check_service(self) -> None:
         print("checking kafka ...")
@@ -381,40 +384,51 @@ class ServiceAccess(ServiceBase):
 
 
 class VstartManager:
+    SERVICE_GROUPS = {
+        'consul':      {'list_attr': 'services_consul'},
+        'kafka':       {'list_attr': 'services_kafka'},
+        'clustermgr':  {'list_attr': 'services_clustermgr', 'start_hook': lambda _: ServiceClustermgr.check_started()},
+        'blobnode':    {'list_attr': 'services_blobnode'},
+        'proxy':       {'list_attr': 'services_proxy'},
+        'scheduler':   {'list_attr': 'services_scheduler'},
+        'access':      {'list_attr': 'services_access'},
+    }
+    COMPOSITE_SERVICES = {
+        'depends':    ['consul', 'kafka'],
+        'blobstore':  ['clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+        'all':        ['consul', 'kafka', 'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+    }
+
     def __init__(self) -> None:
         self.args = self._parse_args()
 
     def _parse_args(self) -> argparse.Namespace:
         parser = argparse.ArgumentParser(description="Vstart Manager for Blobstore")
-        parser.add_argument('--version', type=str, default='1.4.x', choices=['1.4.x', '1.5.x'], help='Specify the version of Blobstore')
-        parser.add_argument('--az-num', type=str, default='one', choices=['one', 'two', 'three'], help='Number of availability zones to create')
-        parser.add_argument('--rmdir', action='store_true', default=False, help='Remove existing directories before starting services')
-        parser.add_argument('--start-depends', action='store_true', default=False, help='Start dependent services like Consul and Kafka')
-        parser.add_argument('--stop-depends', action='store_true', default=False, help='Stop dependent services like Consul and Kafka')
-        parser.add_argument('--restart-depends', action='store_true', default=False, help='Restart dependent services like Consul and Kafka')
-        parser.add_argument('--start-blobstore', action='store_true', default=False, help='Start all Blobstore services')
-        parser.add_argument('--stop-blobstore', action='store_true', default=False, help='Stop all Blobstore services')
-        parser.add_argument('--restart-blobstore', action='store_true', default=False, help='Restart all Blobstore services')
-        parser.add_argument('--start-clustermgr', action='store_true', default=False, help='Start clustermgr services only')
-        parser.add_argument('--stop-clustermgr', action='store_true', default=False, help='Stop clustermgr services only')
-        parser.add_argument('--restart-clustermgr', action='store_true', default=False, help='Restart clustermgr services only')
-        parser.add_argument('--start-blobnode', action='store_true', default=False, help='Start blobnode services only')
-        parser.add_argument('--stop-blobnode', action='store_true', default=False, help='Stop blobnode services only')
-        parser.add_argument('--restart-blobnode', action='store_true', default=False, help='Restart blobnode services only')
-        parser.add_argument('--start-proxy', action='store_true', default=False, help='Start proxy services only')
-        parser.add_argument('--stop-proxy', action='store_true', default=False, help='Stop proxy services only')
-        parser.add_argument('--restart-proxy', action='store_true', default=False, help='Restart proxy services only')
-        parser.add_argument('--start-scheduler', action='store_true', default=False, help='Start scheduler services only')
-        parser.add_argument('--stop-scheduler', action='store_true', default=False, help='Stop scheduler services only')
-        parser.add_argument('--restart-scheduler', action='store_true', default=False, help='Restart scheduler services only')
-        parser.add_argument('--start-access', action='store_true', default=False, help='Start access services only')
-        parser.add_argument('--stop-access', action='store_true', default=False, help='Stop access services only')
-        parser.add_argument('--restart-access', action='store_true', default=False, help='Restart access services only')
+        parser.add_argument('--version', type=str, default='1.4.x', choices=['1.4.x', '1.5.x'],
+                            help='Specify the version of Blobstore')
+        parser.add_argument('--az-num', type=str, default='one', choices=['one', 'two', 'three'],
+                            help='Number of availability zones to create')
+        parser.add_argument('--start', type=str, default='',
+                            choices=['all', 'depends', 'blobstore', 'consul', 'kafka',
+                                     'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+                            help='Start specific service by name')
+        parser.add_argument('--stop', type=str, default='',
+                            choices=['all', 'depends', 'blobstore', 'consul', 'kafka',
+                                     'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+                            help='Stop specific service by name')
+        parser.add_argument('--restart', type=str, default='',
+                            choices=['all', 'depends', 'blobstore', 'consul', 'kafka',
+                                     'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+                            help='Restart specific service by name')
+        parser.add_argument('--rmdir', action='store_true', default=False,
+                            help='Remove existing directories before starting services')
         return parser.parse_args()
 
-    def setup_services_one_az(self) -> None:
-        self.services_depends = [
+    def setup_services_default(self) -> None:
+        self.services_consul = [
             ServiceConsul(self.args, self.dir_manager, "/usr/bin/consul", "", "consul-start.log"),
+        ]
+        self.services_kafka = [
             ServiceKafka(self.args, self.dir_manager, "/usr/bin/kafka_2.13-3.1.0", "", "kafka-start.log"),
         ]
         self.services_clustermgr = [
@@ -422,98 +436,73 @@ class VstartManager:
             ServiceClustermgr(self.args, self.dir_manager, "clustermgr2.json", "clustermgr2.json", "clustermgr2-start.log"),
             ServiceClustermgr(self.args, self.dir_manager, "clustermgr3.json", "clustermgr3.json", "clustermgr3-start.log"),
         ]
+        self.services_proxy = [
+            ServiceProxy(self.args, self.dir_manager, "proxy.json", "proxy.json", "proxy-start.log"),
+        ]
+        self.services_scheduler = [
+            ServiceScheduler(self.args, self.dir_manager, "scheduler.json", "scheduler.json", "scheduler-start.log"),
+        ]
+        self.services_access = [
+            ServiceAccess(self.args, self.dir_manager, "access.json", "access.json", "access-start.log"),
+        ]
+
+    def setup_services_one_az(self) -> None:
         self.services_blobnode = [
             ServiceBlobnode(self.args, self.dir_manager, "blobnode.json", "blobnode.json", "blobnode-start.log"),
         ]
-        self.services_proxy = [
-            ServiceProxy(self.args, self.dir_manager, "proxy.json", "proxy.json", "proxy-start.log"),
-        ]
-        self.services_scheduler = [
-            ServiceScheduler(self.args, self.dir_manager, "scheduler.json", "scheduler.json", "scheduler-start.log"),
-        ]
-        self.services_access = [
-            ServiceAccess(self.args, self.dir_manager, "access.json", "access.json", "access-start.log"),
-        ]
 
     def setup_services_two_az(self) -> None:
-        self.services_depends = [
-            ServiceConsul(self.args, self.dir_manager, "/usr/bin/consul", "", "consul-start.log"),
-            ServiceKafka(self.args, self.dir_manager, "/usr/bin/kafka_2.13-3.1.0", "", "kafka-start.log"),
-        ]
-        self.services_clustermgr = [
-            ServiceClustermgr(self.args, self.dir_manager, "clustermgr1.json", "clustermgr1.json", "clustermgr1-start.log"),
-            ServiceClustermgr(self.args, self.dir_manager, "clustermgr2.json", "clustermgr2.json", "clustermgr2-start.log"),
-            ServiceClustermgr(self.args, self.dir_manager, "clustermgr3.json", "clustermgr3.json", "clustermgr3-start.log"),
-        ]
         self.services_blobnode = [
             ServiceBlobnode(self.args, self.dir_manager, "blobnode-z0.json", "blobnode-z0.json", "blobnode-z0-start.log"),
             ServiceBlobnode(self.args, self.dir_manager, "blobnode-z1.json", "blobnode-z1.json", "blobnode-z1-start.log"),
-        ]
-        self.services_proxy = [
-            ServiceProxy(self.args, self.dir_manager, "proxy.json", "proxy.json", "proxy-start.log"),
-        ]
-        self.services_scheduler = [
-            ServiceScheduler(self.args, self.dir_manager, "scheduler.json", "scheduler.json", "scheduler-start.log"),
-        ]
-        self.services_access = [
-            ServiceAccess(self.args, self.dir_manager, "access.json", "access.json", "access-start.log"),
         ]
 
     def setup_services_three_az(self) -> None:
         print("Three AZ setup is not implemented yet.")
         exit(1)
 
-    def start_depends(self) -> None:
-        print("Starting dependent services...")
-        for service in self.services_depends:
-                service.run_service()
-
-    def stop_depends(self) -> None:
-        print("Stopping dependent services...")
-        for service in reversed(self.services_depends):
-                service.stop_service()
-
-    def start_clustermgr(self) -> None:
-        for idx, service in enumerate(self.services_clustermgr):
+    def _start_service_group(self, group_name: str) -> None:
+        config = self.SERVICE_GROUPS[group_name]
+        services = getattr(self, config['list_attr'])
+        for service in services:
             service.run_service()
-            if idx == len(self.services_clustermgr) - 1:
-                ServiceClustermgr.check_started()
+        hook = config.get('start_hook')
+        if hook:
+            hook(services)
 
-    def stop_clustermgr(self) -> None:
-        for service in reversed(self.services_clustermgr):
+    def _stop_service_group(self, group_name: str) -> None:
+        config = self.SERVICE_GROUPS[group_name]
+        services = getattr(self, config['list_attr'])
+        for service in services:
             service.stop_service()
 
-    def start_blobnode(self) -> None:
-        for service in self.services_blobnode:
-            service.run_service()
+    def _start_composite(self, name: str) -> None:
+        for svc in self.COMPOSITE_SERVICES[name]:
+            self._start_service_group(svc)
 
-    def stop_blobnode(self) -> None:
-        for service in reversed(self.services_blobnode):
-            service.stop_service()
+    def _stop_composite(self, name: str) -> None:
+        for svc in reversed(self.COMPOSITE_SERVICES[name]):
+            self._stop_service_group(svc)
 
-    def start_proxy(self) -> None:
-        for service in self.services_proxy:
-            service.run_service()
-
-    def stop_proxy(self) -> None:
-        for service in reversed(self.services_proxy):
-            service.stop_service()
-
-    def start_scheduler(self) -> None:
-        for service in self.services_scheduler:
-            service.run_service()
-
-    def stop_scheduler(self) -> None:
-        for service in reversed(self.services_scheduler):
-            service.stop_service()
-
-    def start_access(self) -> None:
-        for service in self.services_access:
-            service.run_service()
-
-    def stop_access(self) -> None:
-        for service in reversed(self.services_access):
-            service.stop_service()
+    def _execute_action(self, action: str, target: str) -> None:
+        if target in self.COMPOSITE_SERVICES:
+            if action == 'start':
+                self._start_composite(target)
+            elif action == 'stop':
+                self._stop_composite(target)
+            elif action == 'restart':
+                self._stop_composite(target)
+                self._start_composite(target)
+        elif target in self.SERVICE_GROUPS:
+            if action == 'start':
+                self._start_service_group(target)
+            elif action == 'stop':
+                self._stop_service_group(target)
+            elif action == 'restart':
+                self._stop_service_group(target)
+                self._start_service_group(target)
+        else:
+            raise ValueError(f"Unknown service: {target}")
 
     def run(self) -> None:
         cfg_dir = f"cfg-{self.args.version}/az-{self.args.az_num}"
@@ -521,91 +510,32 @@ class VstartManager:
         self.dir_manager = DirectoryManager(cfg_dir)
         self.dir_manager.setup_directory()
 
-        if self.args.az_num == 'one':
-            self.setup_services_one_az()
-        elif self.args.az_num == 'two':
-            self.setup_services_two_az()
-        elif self.args.az_num == 'three':
-            self.setup_services_three_az()
+        self.setup_services_default()
+        az_setup_map = {
+            'one': self.setup_services_one_az,
+            'two': self.setup_services_two_az,
+            'three': self.setup_services_three_az,
+        }
+        if self.args.az_num in az_setup_map:
+            az_setup_map[self.args.az_num]()
         else:
             print(f"Invalid az-num: {self.args.az_num}")
             exit(1)
 
-        if self.args.start_depends:
-            self.start_depends()
-        if self.args.stop_depends:
-            self.stop_depends()
-        if self.args.restart_depends:
-            self.stop_depends()
-            self.start_depends()
-
-        if self.args.start_blobstore:
-            self.start_clustermgr()
-            self.start_blobnode()
-            self.start_proxy()
-            self.start_scheduler()
-            self.start_access()
-        if self.args.stop_blobstore:
-            self.stop_access()
-            self.stop_scheduler()
-            self.stop_proxy()
-            self.stop_blobnode()
-            self.stop_clustermgr()
-        if self.args.restart_blobstore:
-            self.stop_access()
-            self.stop_scheduler()
-            self.stop_proxy()
-            self.stop_blobnode()
-            self.stop_clustermgr()
-            self.start_clustermgr()
-            self.start_blobnode()
-            self.start_proxy()
-            self.start_scheduler()
-            self.start_access()
-
-        if self.args.start_clustermgr:
-            self.start_clustermgr()
-        if self.args.stop_clustermgr:
-            self.stop_clustermgr()
-        if self.args.restart_clustermgr:
-            self.stop_clustermgr()
-            self.start_clustermgr()
-
-        if self.args.start_blobnode:
-            self.start_blobnode()
-        if self.args.stop_blobnode:
-            self.stop_blobnode()
-        if self.args.restart_blobnode:
-            self.stop_blobnode()
-            self.start_blobnode()
-
-        if self.args.start_proxy:
-            self.start_proxy()
-        if self.args.stop_proxy:
-            self.stop_proxy()
-        if self.args.restart_proxy:
-            self.stop_proxy()
-            self.start_proxy()
-
-        if self.args.start_scheduler:
-            self.start_scheduler()
-        if self.args.stop_scheduler:
-            self.stop_scheduler()
-        if self.args.restart_scheduler:
-            self.stop_scheduler()
-            self.start_scheduler()
-
-        if self.args.start_access:
-            self.start_access()
-        if self.args.stop_access:
-            self.stop_access()
-        if self.args.restart_access:
-            self.stop_access()
-            self.start_access()
+        actions = []
+        if self.args.start:
+            actions.append(('start', self.args.start))
+        if self.args.stop:
+            actions.append(('stop', self.args.stop))
+        if self.args.restart:
+            actions.append(('restart', self.args.restart))
+        for action, target in actions:
+            self._execute_action(action, target)
 
         if self.args.rmdir:
             print("Removing all directories...")
             self.dir_manager.remove_directory()
+
 
 def main():
     if sys.version_info.major < 3:
