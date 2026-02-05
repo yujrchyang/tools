@@ -142,3 +142,28 @@ class ConfigFileManager:
         except Exception as e:
             print(f"error: read json file {json_path} failed : {str(e)}")
             sys.exit(1)
+
+class HumanReadable:
+    @staticmethod
+    def human_bytes(bytes: int) -> str:
+        bytes_float = float(bytes)
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_float < 1024.0:
+                return f"{bytes_float:.2f}{unit}" if unit != 'B' else f"{int(bytes_float)}{unit}"
+            bytes_float /= 1024.0
+        return f"{bytes_float:.2f}PB"
+
+    @staticmethod
+    def human_disk_stats(status: int) -> str:
+        if status == 1:
+            return "Normal"
+        elif status == 2:
+            return "Broken"
+        elif status == 3:
+            return "Repairing"
+        elif status == 4:
+            return "Repaired"
+        elif status == 5:
+            return "Dropped"
+        else:
+            return "Unknow"

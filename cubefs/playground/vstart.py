@@ -13,7 +13,6 @@ from abc import ABC, abstractmethod
 
 import common
 
-
 class DirectoryManager:
     def __init__(self, cfg_dir: str) -> None:
         VSTART_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -55,7 +54,6 @@ class DirectoryManager:
             dir_path = Path(dir)
             if dir_path.exists():
                 shutil.rmtree(dir_path)
-
 
 class ServiceBase(ABC):
     def __init__(self, args: argparse.Namespace, dir_manager: DirectoryManager,
@@ -251,7 +249,6 @@ class ServiceAccess(ServiceBase):
         time.sleep(1)
         print("access started")
 
-
 class VstartManager:
     SERVICE_GROUPS = {
         'consul':      {'list_attr': 'services_consul'},
@@ -404,7 +401,6 @@ class VstartManager:
         if self.args.rmdir:
             print("Removing all directories...")
             self.dir_manager.remove_directory()
-
 
 def main():
     if sys.version_info.major < 3:
