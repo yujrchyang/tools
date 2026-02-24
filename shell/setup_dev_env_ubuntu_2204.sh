@@ -202,7 +202,7 @@ source $HOME/.zshrc
 ##   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile        \
 ##   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
 
-pkgname=go1.24.11.linux-$ARCH.tar.gz && \
+pkgname=go1.24.13.linux-$ARCH.tar.gz && \
   wget https://go.dev/dl/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
   $SUDO mv go /usr/lib/go-1.24 && \
@@ -218,9 +218,9 @@ go env GOPATH GOROOT && \
   source $HOME/.zshrc && echo $PATH
 
 # install golangci-lint
-# https://golangci-lint.run/docs/welcome/install/#local-installation
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
-golangci-lint --version
+# https://golangci-lint.run/docs/welcome/install/local/
+curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.10.1 && \
+  golangci-lint --version
 
 # go install github.com/axw/gocov/gocov@latest
 go install golang.org/x/tools/gopls@latest && \
@@ -253,21 +253,9 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   $SUDO mv hcl2json /usr/bin && \
   which terraform terragrunt hcl2json
 
-# install vim with YCM
-git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
-  cd $HOME/.vim_runtime && \
-  git submodule update --init --recursive && \
-  python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo && \
-  sh $HOME/.vim_runtime/install_awesome_vimrc.sh && \
-  cd $WORKDIR
-
-# install vim without YCM
-git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
-  sh $HOME/.vim_runtime/install_awesome_vimrc.sh
-
 # install nvim
 ## install dep node.js
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash && \
   \. "$HOME/.nvm/nvm.sh" && \
   nvm install 24 && \
   node -v && \
@@ -281,13 +269,14 @@ curl -fsSL https://install.julialang.org | sh && \
 
 pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
   pkgname=nvim-linux-$pkgarch.tar.gz && \
-  wget https://github.com/neovim/neovim/releases/download/v0.11.5/$pkgname && \
+  wget https://github.com/neovim/neovim/releases/download/v0.11.6/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
-  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.5-linux-$pkgarch && \
-  $SUDO ln -s /usr/lib/nvim-0.11.5-linux-$pkgarch/bin/nvim /usr/bin && \
+  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.6-linux-$pkgarch && \
+  $SUDO ln -s /usr/lib/nvim-0.11.6-linux-$pkgarch/bin/nvim /usr/bin && \
   which nvim
 
-# arm
+## arm
+## https://github.com/mason-org/mason.nvim/issues/1578
 mkdir -p $HOME/.local/share/nvim/mason/packages/clangd/mason-schemas && \
   cd $HOME/.local/share/nvim/mason/packages/clangd && \
   curl -qs https://raw.githubusercontent.com/clangd/vscode-clangd/master/package.json | jq .contributes.configuration > mason-schemas/lsp.json && \
@@ -307,7 +296,7 @@ pkgname=consul_1.11.4_linux_$ARCH.zip && \
   $SUDO mv -f consul /usr/bin && \
   which consul
 
-# install kafka
+## install kafka
 wget https://ocs-cn-south1.heytapcs.com/blobstore/kafka_2.13-3.1.0.tgz && \
   $SUDO tar -zxf kafka_2.13-3.1.0.tgz -C /usr/bin && \
   rm -rf kafka_2.13-3.1.0.tgz && \
