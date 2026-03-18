@@ -78,6 +78,7 @@ class ServiceBase(ABC):
                     os.kill(int(pid.split("/")[-1]), signal.SIGKILL)
             except (FileNotFoundError, ProcessLookupError, PermissionError):
                 pass
+        time.sleep(1)
 
     @abstractmethod
     def _setup_service(self) -> None:
