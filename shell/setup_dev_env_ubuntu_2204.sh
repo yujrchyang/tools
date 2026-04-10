@@ -253,6 +253,9 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   $SUDO mv hcl2json /usr/bin && \
   which terraform terragrunt hcl2json
 
+# install opencode
+curl -fsSL https://opencode.ai/install | bash
+
 # install nvim
 ## install dep node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash && \

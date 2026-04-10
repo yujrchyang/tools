@@ -137,11 +137,16 @@ $SUDO apt install -y "${build_tools[@]}"
 $SUDO apt install -y "${dev_deps[@]}"
 $SUDO apt install -y linux-headers-$(uname -r) kmod
 
+# update locale
+$SUDO locale-gen en_US.UTF-8
+$SUDO update-locale LANG=en_US.UTF-8
+
 # update-alternatives --config java
 java -version
 
 # install python pkgs
 # python3 -m pip install --user PrettyTable
+$SUDO apt install python3-prettytable
 
 # zsh
 # sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
@@ -238,17 +243,8 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   $SUDO mv hcl2json /usr/bin && \
   which terraform terragrunt hcl2json
 
-# install vim with YCM
-git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
-  cd $HOME/.vim_runtime && \
-  git submodule update --init --recursive && \
-  python3 $HOME/.vim_runtime/my_plugins/YouCompleteMe/install.py --all --force-sudo && \
-  sh $HOME/.vim_runtime/install_awesome_vimrc.sh && \
-  cd $WORKDIR
-
-# install vim without YCM
-git clone https://github.com/yujrchyang/vimrc.git $HOME/.vim_runtime && \
-  sh $HOME/.vim_runtime/install_awesome_vimrc.sh
+# install opencode
+curl -fsSL https://opencode.ai/install | bash
 
 # install blobstore deps x86
 ## install consul
