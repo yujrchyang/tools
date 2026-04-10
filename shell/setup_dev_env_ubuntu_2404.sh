@@ -111,7 +111,7 @@ basic_tools=(
 )
 build_tools=(
   gcc g++ make automake cmake ninja-build build-essential nasm
-  clang clangd libclang-dev llvm bison flex
+  clang clang-tidy clangd libclang-dev llvm bison flex
   gdb bear ccache maven libtool
 )
 dev_deps=(
@@ -141,7 +141,7 @@ $SUDO apt install -y linux-headers-$(uname -r) kmod
 java -version
 
 # install python pkgs
-python3 -m pip install --user PrettyTable
+# python3 -m pip install --user PrettyTable
 
 # zsh
 # sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
@@ -205,8 +205,8 @@ go env GOPATH GOROOT && \
 
 # install golangci-lint
 # https://golangci-lint.run/docs/welcome/install/#local-installation
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
-golangci-lint --version
+curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.11.4 && \
+  golangci-lint --version
 
 # go install github.com/axw/gocov/gocov@latest
 go install golang.org/x/tools/gopls@latest && \
