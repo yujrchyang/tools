@@ -69,7 +69,7 @@ build_tools=(
   gdb bear ccache maven libtool
 )
 dev_deps=(
-  python3 python3-dev python3-sphinx python3-pip
+  python3 python3-dev python3-sphinx python3-pip python3-venv pipx
   nodejs npm golang php composer
   openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
   lua5.4 liblua5.4-dev tcl sqlite3 libsqlite3-dev
@@ -104,7 +104,7 @@ $SUDO apt install gcc-12 g++-12 && \
 java -version
 
 # install python pkgs
-python3 -m pip install --user pyright ruff PrettyTable matplotlib seaborn
+python3 -m pip install --user pyright ruff cmake-language-server PrettyTable matplotlib seaborn
 
 # setup .bashrc
 tee -a $HOME/.bashrc <<-'EOF'
@@ -272,10 +272,10 @@ curl -fsSL https://install.julialang.org | sh && \
 
 pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
   pkgname=nvim-linux-$pkgarch.tar.gz && \
-  wget https://github.com/neovim/neovim/releases/download/v0.11.6/$pkgname && \
+  wget https://github.com/neovim/neovim/releases/download/v0.11.7/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
-  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.6-linux-$pkgarch && \
-  $SUDO ln -s /usr/lib/nvim-0.11.6-linux-$pkgarch/bin/nvim /usr/bin && \
+  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.7-linux-$pkgarch && \
+  $SUDO ln -s /usr/lib/nvim-0.11.7-linux-$pkgarch/bin/nvim /usr/bin && \
   which nvim
 
 ## arm

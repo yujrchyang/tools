@@ -115,7 +115,7 @@ build_tools=(
   gdb bear ccache maven libtool
 )
 dev_deps=(
-  python3 python3-dev python3-sphinx python3-pip
+  python3 python3-dev python3-sphinx python3-pip pipx
   nodejs npm golang
   openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk
   lua5.4 liblua5.4-dev tcl sqlite3 libsqlite3-dev
@@ -147,6 +147,8 @@ java -version
 # install python pkgs
 # python3 -m pip install --user PrettyTable
 $SUDO apt install python3-prettytable
+pipx install pyright
+pipx install ruff
 
 # zsh
 # sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
@@ -197,7 +199,7 @@ pkgname=go1.24.9.linux-$ARCH.tar.gz && \
   wget https://go.dev/dl/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
   $SUDO mv go /usr/lib/go-1.24 && \
-  $SUDO update-alternatives --install /usr/bin/go go /usr/lib/go-1.18/bin/go 118 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.18/bin/gofmt && \
+  $SUDO update-alternatives --install /usr/bin/go go /usr/lib/go-1.22/bin/go 122 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.22/bin/gofmt && \
   $SUDO update-alternatives --install /usr/bin/go go /usr/lib/go-1.24/bin/go 124 --slave /usr/bin/gofmt gofmt /usr/lib/go-1.24/bin/gofmt && \
   go version
 
@@ -245,6 +247,40 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
 
 # install opencode
 curl -fsSL https://opencode.ai/install | bash
+
+# install nvim
+## install dep node.js
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash && \
+  \. "$HOME/.nvm/nvm.sh" && \
+  nvm install 24 && \
+  node -v && \
+  npm -v
+
+## install dep julialang/neovim/tree-sitter
+curl -fsSL https://install.julialang.org | sh && \
+  . $HOME/.zshrc && \
+  npm install -g neovim && \
+  cargo install --locked tree-sitter-cli
+
+pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
+  pkgname=nvim-linux-$pkgarch.tar.gz && \
+  wget https://github.com/neovim/neovim/releases/download/v0.11.7/$pkgname && \
+  tar -zxf $pkgname && rm -rf $pkgname && \
+  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.7-linux-$pkgarch && \
+  $SUDO ln -s /usr/lib/nvim-0.11.7-linux-$pkgarch/bin/nvim /usr/bin && \
+  which nvim
+
+## arm
+## https://github.com/mason-org/mason.nvim/issues/1578
+mkdir -p $HOME/.local/share/nvim/mason/packages/clangd/mason-schemas && \
+  cd $HOME/.local/share/nvim/mason/packages/clangd && \
+  curl -qs https://raw.githubusercontent.com/clangd/vscode-clangd/master/package.json | jq .contributes.configuration > mason-schemas/lsp.json && \
+  echo '{"schema_version":"1.1","primary_source":{"type":"local"},"name":"clangd","links":{"share":{"mason-schemas/lsp/clangd.json":"mason-schemas/lsp.json"}}}' > mason-receipt.json && \
+  cd $WORKDIR
+
+git clone https://github.com/yujrchyang/neovimrc.git $HOME/.config/nvim
+nvim --headless +"Lazy! sync" +qa
+nvim
 
 # install blobstore deps x86
 ## install consul
