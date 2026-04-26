@@ -378,6 +378,8 @@ git clone --depth=1 --branch v17.2.9 https://github.com/ceph/ceph ceph-v17.2.9 &
   ./install-deps.sh && \
   cd .. && rm -rf ceph-v17.2.9
 
+pip install --upgrade jaraco.text jaraco.functools
+
 $SUDO cp /sys/kernel/btf/vmlinux /usr/lib/modules/"$(uname -r)"/build/
 $SUDO vim /etc/default/grub
 # GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt"
