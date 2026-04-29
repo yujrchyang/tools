@@ -237,7 +237,8 @@ go install golang.org/x/tools/gopls@latest && \
 curl https://sh.rustup.rs -sSf | sh -s -- -y && \
   . $HOME/.cargo/env && \
   rustc --version && \
-  rustup component add rust-src rust-analyzer rust-analyzer-preview
+  rustup component add rust-src rust-analyzer rust-analyzer-preview && \
+  cargo install cargo-tarpaulin cargo-audit
 
 # install terraform
 pkgname=terraform_1.13.4_linux_$ARCH.zip && \
