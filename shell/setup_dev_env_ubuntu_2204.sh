@@ -66,7 +66,7 @@ basic_tools=(
 build_tools=(
   gcc g++ make automake cmake ninja-build build-essential nasm
   clang clang-tidy clangd libclang-dev llvm bison flex
-  gdb bear ccache maven libtool
+  gdb bear ccache maven libtool mold
 )
 dev_deps=(
   python3 python3-dev python3-sphinx python3-pip python3-venv pipx
