@@ -240,6 +240,19 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y && \
   rustup component add rust-src rust-analyzer rust-analyzer-preview && \
   cargo install cargo-tarpaulin cargo-audit
 
+# install node.js
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash && \
+  \. "$HOME/.nvm/nvm.sh" && \
+  nvm install 24 && \
+  node -v && \
+  npm -v
+
+# install opencode
+curl -fsSL https://opencode.ai/install | bash
+
+# install skills
+npx skills add https://github.com/jimliu/baoyu-skills --skill baoyu-translate
+
 # install terraform
 pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   wget https://releases.hashicorp.com/terraform/1.13.4/$pkgname && \
@@ -254,17 +267,7 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   $SUDO mv hcl2json /usr/bin && \
   which terraform terragrunt hcl2json
 
-# install opencode
-curl -fsSL https://opencode.ai/install | bash
-
 # install nvim
-## install dep node.js
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash && \
-  \. "$HOME/.nvm/nvm.sh" && \
-  nvm install 24 && \
-  node -v && \
-  npm -v
-
 ## install dep julialang/neovim/tree-sitter
 curl -fsSL https://install.julialang.org | sh && \
   . $HOME/.zshrc && \
@@ -378,8 +381,6 @@ git clone --depth=1 --branch v17.2.9 https://github.com/ceph/ceph ceph-v17.2.9 &
   cd ceph-v17.2.9 && \
   ./install-deps.sh && \
   cd .. && rm -rf ceph-v17.2.9
-
-pip install --upgrade jaraco.text jaraco.functools
 
 $SUDO cp /sys/kernel/btf/vmlinux /usr/lib/modules/"$(uname -r)"/build/
 $SUDO vim /etc/default/grub
