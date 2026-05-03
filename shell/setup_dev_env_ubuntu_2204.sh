@@ -375,8 +375,9 @@ pyparsing
 scikit-build
 EOF
   export PIP_CONSTRAINT=$(pwd)/scripts/pkgdep/requirements.txt && \
-  $SUDO -E scripts/pkgdep.sh --all && \
-  cd .. && rm -rf spdk-24.01
+  $SUDO scripts/pkgdep.sh --all && \
+  cd .. && rm -rf spdk-24.01 && \
+  unset PIP_CONSTRAINT
 
 # install ceph deps
 git clone --depth=1 --branch v17.2.9 https://github.com/ceph/ceph ceph-v17.2.9 && \
