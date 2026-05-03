@@ -7,7 +7,7 @@
 ## curl https://www.google.com
 
 # Initialize the variables required by the script
-SUDO=''; (( EUID )) && SUDO="sudo -E"; echo $SUDO && \
+SUDO=''; (( EUID )) && SUDO=sudo; echo $SUDO && \
   ARCH=$(dpkg --print-architecture); echo $ARCH && \
   WORKDIR="/tmp" && cd $WORKDIR && pwd
 
