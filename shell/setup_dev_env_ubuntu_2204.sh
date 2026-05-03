@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC1091,SC2016,SC2086,SC2046,SC2164
+# shellcheck disable=SC1091,SC2016,SC2086,SC2046,SC2164,SC2155
 
 # enable proxy
 ## ip=
@@ -7,9 +7,9 @@
 ## curl https://www.google.com
 
 # Initialize the variables required by the script
-SUDO=''; (( EUID )) && SUDO=sudo; echo $SUDO
-ARCH=$(dpkg --print-architecture); echo $ARCH
-WORKDIR="/tmp" && cd $WORKDIR && pwd
+SUDO=''; (( EUID )) && SUDO=sudo; echo $SUDO && \
+  ARCH=$(dpkg --print-architecture); echo $ARCH && \
+  WORKDIR="/tmp" && cd $WORKDIR && pwd
 
 # sed -i 's/^[[:space:]]*#[[:space:]]*\(deb-src\)/\1/' /etc/apt/sources.list
 $SUDO apt update && $SUDO apt install -y ca-certificates
@@ -86,9 +86,7 @@ dev_deps=(
 
   libspdlog-dev
 )
-$SUDO apt install -y "${basic_tools[@]}"
-$SUDO apt install -y "${build_tools[@]}"
-$SUDO apt install -y "${dev_deps[@]}"
+$SUDO apt install -y "${basic_tools[@]}" "${build_tools[@]}" "${dev_deps[@]}"
 $SUDO apt install -y linux-headers-$(uname -r) kmod
 
 # update locale
@@ -102,9 +100,6 @@ $SUDO apt install gcc-12 g++-12 && \
 
 # update-alternatives --config java
 java -version
-
-# install python pkgs
-python3 -m pip install --user pyright ruff cmake-language-server PrettyTable matplotlib seaborn
 
 # setup .bashrc
 tee -a $HOME/.bashrc <<-'EOF'
@@ -144,19 +139,6 @@ EOF
 
 source $HOME/.bashrc
 
-# rebuild git
-mkdir git-openssl && cd git-openssl && \
-  $SUDO apt build-dep git -y && \
-  $SUDO apt install -y libcurl4-openssl-dev && \
-  apt source git -y && \
-  cd git-2.34.1 && \
-  grep gnutls < debian/control && \
-  sed -i 's/libcurl4-gnutls-dev/libcurl4-openssl-dev/g' debian/control && \
-  grep curl < debian/control && \
-  dpkg-buildpackage -b -uc -us && \
-  cd .. && $SUDO dpkg -i git-man_*_all.deb git_*_$ARCH.deb && \
-  cd .. && rm -rf git-openssl
-
 # zsh
 # sh -c "$(curl -fsSL https://install.ohmyz.sh/)"
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
@@ -192,16 +174,18 @@ EOF
 
 source $HOME/.zshrc
 
-# install go 1.24
-## $SUDO add-apt-repository ppa:longsleep/golang-backports                      \
-##   && $SUDO apt update                                                        \
-##   && $SUDO apt install -y golang                                             \
-##   && go env -w GOPATH=/opt/go                                                \
-##   && mkdir -p $HOME/.config/go                                               \
-##   && echo 'export GOPATH=/opt/go' >> $HOME/.config/go/profile                \
-##   && echo 'export PATH=$PATH:$GOPATH/bin' >> $HOME/.config/go/profile        \
-##   && echo '. "$HOME/.config/go/profile"' | tee -a $HOME/.bashrc $HOME/.zshrc
+# install python pkgs
+pipx ensurepath
+python3 -m pip install --user pyright ruff cmake-language-server PrettyTable matplotlib seaborn
 
+wget -O nasm-2.16.03.tar.gz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.gz && \
+  tar -zxf nasm-2.16.03.tar.gz && \
+  cd nasm-2.16.03 && \
+  ./configure && \
+  make -j$(nproc) && $SUDO make install && \
+  cd .. && rm -rf nasm-2.16.03*
+
+# install go 1.24
 pkgname=go1.24.13.linux-$ARCH.tar.gz && \
   wget https://go.dev/dl/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
@@ -247,12 +231,6 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash 
   node -v && \
   npm -v
 
-# install opencode
-curl -fsSL https://opencode.ai/install | bash
-
-# install skills
-npx skills add https://github.com/jimliu/baoyu-skills --skill baoyu-translate
-
 # install terraform
 pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   wget https://releases.hashicorp.com/terraform/1.13.4/$pkgname && \
@@ -266,6 +244,11 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   chmod +x hcl2json && \
   $SUDO mv hcl2json /usr/bin && \
   which terraform terragrunt hcl2json
+
+# install opencode
+curl -fsSL https://opencode.ai/install | bash
+## install skills
+npx skills add https://github.com/jimliu/baoyu-skills --skill baoyu-translate
 
 # install nvim
 ## install dep julialang/neovim/tree-sitter
@@ -326,7 +309,7 @@ wget -O abseil-cpp-20200923.3.tar.gz https://github.com/abseil/abseil-cpp/archiv
   sed -i 's/^  size_t stack_size =.*/  size_t stack_size = (std::max<size_t>(SIGSTKSZ, 65536) + page_mask) \& ~page_mask;/' absl/debugging/failure_signal_handler.cc && \
   mkdir build && cd build && \
   cmake .. -DCMAKE_BUILD_TYPE=Release && \
-  make && $SUDO make install && \
+  make -j$(nproc) && $SUDO make install && \
   cd ../.. && rm -rf abseil-cpp-20200923.3*
 
 wget -O clickhouse-cpp-2.1.0.tar.gz https://github.com/ClickHouse/clickhouse-cpp/archive/refs/tags/v2.1.0.tar.gz && \
@@ -334,7 +317,7 @@ wget -O clickhouse-cpp-2.1.0.tar.gz https://github.com/ClickHouse/clickhouse-cpp
   cd clickhouse-cpp-2.1.0 && \
   mkdir build && cd build && \
   cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release && \
-  make && $SUDO make install && \
+  make -j$(nproc) && $SUDO make install && \
   cd ../.. && rm -rf clickhouse-cpp*
 
 # install rocksdb deps
@@ -343,7 +326,7 @@ wget -O gflags-2.2.2.tar.gz https://github.com/gflags/gflags/archive/refs/tags/v
   cd gflags-2.2.2 && \
   mkdir build && cd build && \
   cmake .. -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release && \
-  make && $SUDO make install && \
+  make -j$(nproc) && $SUDO make install && \
   cd ../.. && rm -rf gflags-2.2.2*
 
 wget -O snappy-1.1.8.tar.gz https://github.com/google/snappy/archive/refs/tags/1.1.8.tar.gz && \
@@ -351,7 +334,7 @@ wget -O snappy-1.1.8.tar.gz https://github.com/google/snappy/archive/refs/tags/1
   cd snappy-1.1.8 && \
   mkdir build && cd build && \
   cmake .. -DSNAPPY_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release && \
-  make && $SUDO make install && \
+  make -j$(nproc) && $SUDO make install && \
   cd ../.. && rm -rf snappy-1.1.8*
 
 wget -O leveldb-1.22.tar.gz https://github.com/google/leveldb/archive/refs/tags/1.22.tar.gz && \
@@ -359,7 +342,7 @@ wget -O leveldb-1.22.tar.gz https://github.com/google/leveldb/archive/refs/tags/
   cd leveldb-1.22 && \
   mkdir build && cd build && \
   cmake .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_BUILD_TYPE=Release && \
-  make && $SUDO make install && \
+  make -j$(nproc) && $SUDO make install && \
   cd ../.. && rm -rf leveldb-1.22*
 
 # install seastar deps
@@ -373,7 +356,26 @@ git clone --depth=1 --branch seastar-22.11.0 https://github.com/scylladb/seastar
 git clone --depth=1 --branch v24.01 https://github.com/spdk/spdk.git spdk-24.01 && \
   cd spdk-24.01 && \
   ( [[ "$SUDO" == "sudo" ]] || sed -i 's/\(^[[:space:]]*\)sudo -E /\1/' scripts/pkgdep/common.sh ) && \
-  $SUDO scripts/pkgdep.sh --all && \
+  sed -i '273s/^/# /' scripts/pkgdep/common.sh && \
+  cat <<EOF > scripts/pkgdep/requirements.txt
+setuptools==59.6.0
+ninja==1.13.0
+meson==1.10.0
+pyelftools==0.32
+ijson==3.4.0
+python-magic==0.4.27
+grpcio==1.76.0
+grpcio-tools==1.76.0
+pyyaml==5.4.1
+paramiko
+pexpect
+pandas
+configshell-fb
+pyparsing
+scikit-build
+EOF
+  export PIP_CONSTRAINT=$(pwd)/scripts/pkgdep/requirements.txt && \
+  $SUDO -E scripts/pkgdep.sh --all && \
   cd .. && rm -rf spdk-24.01
 
 # install ceph deps
