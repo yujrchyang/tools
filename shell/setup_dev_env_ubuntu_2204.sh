@@ -375,7 +375,9 @@ pyparsing
 scikit-build
 EOF
   export PIP_CONSTRAINT=$(pwd)/scripts/pkgdep/requirements.txt && \
-  $SUDO scripts/pkgdep.sh --all && \
+  EXEC_CMD=() && \
+  [[ "$SUDO" == "sudo" ]] && EXEC_CMD=(sudo -E) && \
+  "${EXEC_CMD[@]}" scripts/pkgdep.sh --all && \
   cd .. && rm -rf spdk-24.01 && \
   unset PIP_CONSTRAINT
 
