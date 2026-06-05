@@ -145,7 +145,7 @@ FINAL_SERVERS_ROUNDED=$((FINAL_DATASETS * DATASET_SIZE))
 
 # ========== Output ==========
 echo ""
-echo "========== CubeFS Resource Calculation =========="
+echo "========== Blobstore Resource Calculation =========="
 echo ""
 echo "Input:"
 echo "  EC K/M:                     ${EC_K}+${EC_M}"
