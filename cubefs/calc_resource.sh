@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# CubeFS Resource Calculation Script
-# 根据容量和 QPS 需求计算 CubeFS 集群所需的服务器台数
+# Blobstore Resource Calculation Script
+# 根据容量和 QPS 需求计算 Blobstore 集群所需的服务器台数
 #
 
 set -euo pipefail
@@ -25,6 +25,7 @@ Environment Variables:
   IOPS_COEFFICIENT           IOPS coefficient / IO block size (default: 512, 512K)
   BLOBNODE_IO_ALIGN          Blobnode IO align in bytes (default: 4096)
   DATASET_SIZE               Devices per dataset (default: 60)
+  MIN_READ_SHARD_X           Extra read shard multiplier (default: 1)
 
 Example:
   resource.sh --pb 10 --dc 16 --dn 36 --ec 12+9
@@ -56,6 +57,7 @@ IOPS_PER_DISK=${IOPS_PER_DISK:-100}
 IOPS_COEFFICIENT=${IOPS_COEFFICIENT:-512}
 BLOBNODE_IO_ALIGN=${BLOBNODE_IO_ALIGN:-4096}
 DATASET_SIZE=${DATASET_SIZE:-60}
+MIN_READ_SHARD_X=${MIN_READ_SHARD_X:-1}
 CLUSTER_THRESHOLD=${CLUSTER_THRESHOLD:-0.85}
 
 CLIENT_PB=1
@@ -123,7 +125,7 @@ DEMAND_QPS_WRITE=$(echo "scale=2; $CLIENT_QPS * $CLIENT_WRITE / $RATIO_SUM_QPS" 
 DEMAND_QPS_READ=$(echo "scale=2; $CLIENT_QPS * $CLIENT_READ / $RATIO_SUM_QPS" | bc -l)
 
 # Demand_IOPS_Per_Disk = Demand_QPS_Write * (K+M) / Disk_Per_PiB + Demand_QPS_Read * K / Disk_Per_PiB
-DEMAND_IOPS_PER_DISK=$(echo "scale=2; $DEMAND_QPS_WRITE * $EC_TOTAL / $DISK_PER_PIB + $DEMAND_QPS_READ * $EC_K / $DISK_PER_PIB" | bc -l)
+DEMAND_IOPS_PER_DISK=$(echo "scale=2; $DEMAND_QPS_WRITE * $EC_TOTAL / $DISK_PER_PIB + $DEMAND_QPS_READ * ($EC_K + $MIN_READ_SHARD_X) / $DISK_PER_PIB" | bc -l)
 
 # Demand_IOPS_Magnification_Factor = Demand_IOPS_Per_Disk / IOPS_Per_Disk
 DEMAND_IOPS_MAG=$(echo "scale=2; $DEMAND_IOPS_PER_DISK / $IOPS_PER_DISK" | bc -l)
