@@ -116,7 +116,7 @@ TPS_PER_PIB=$(bc_floor "$DISK_PER_PIB * ($IOPS_PER_DISK / ($EC_SHARD_SIZE / ($IO
 GBPS_PER_PIB=$(echo "scale=2; $TPS_PER_PIB * $CLIENT_IO_SIZE * 1024 * 8 / (1024 ^ 3)" | bc -l)
 
 # Num_Of_Servers = Demand_PB * Disk_Per_PiB / Disks_Per_Node
-NUM_SERVERS_CAP=$(ceil_div $(( CLIENT_PB * DISK_PER_PIB )) "$DISKS_PER_NODE")
+NUM_SERVERS_CAP=$(bc_ceil "$CLIENT_PB * $DISK_PER_PIB / $DISKS_PER_NODE")
 [[ $NUM_SERVERS_CAP -lt $EC_TOTAL ]] && NUM_SERVERS_CAP=$EC_TOTAL
 
 # === By QPS ===
