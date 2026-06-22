@@ -16,7 +16,8 @@
         {"path": "./run/lib/disks/disk16", "auto_format": true, "disable_sync": true},
         {"path": "./run/lib/disks/disk17", "auto_format": true, "disable_sync": true},
         {"path": "./run/lib/disks/disk18", "auto_format": true, "disable_sync": true},
-        {"path": "./run/lib/disks/disk19", "auto_format": true, "disable_sync": true}
+        {"path": "./run/lib/disks/disk19", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk20", "auto_format": true, "disable_sync": true}
     ],
     "clustermgr": {
         "hosts": [
