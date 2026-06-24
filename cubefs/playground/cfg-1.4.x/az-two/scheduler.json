@@ -43,7 +43,7 @@
     "volume_inspect": {
         "degrade_stats": {
             "enable": true,
-            "degrade_batch": 50
+            "batch": 50
         }
     }
 }

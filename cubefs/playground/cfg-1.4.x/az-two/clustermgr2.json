@@ -48,6 +48,9 @@
     "volume_mgr_config":{
         "allocatable_size":1048576
     },
+    "cluster_config":{
+        "volume_reserve_size":524288
+    },
     "disk_mgr_config": {
         "refresh_interval_s": 10,
         "rack_aware":false,

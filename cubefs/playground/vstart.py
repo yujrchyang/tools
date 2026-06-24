@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import re
 import sys
 import argparse
 import shutil
@@ -21,28 +20,6 @@ class DirectoryManager:
         self.log_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, './run/log'))
         self.cfg_dir = os.path.abspath(os.path.join(VSTART_SCRIPT_DIR, cfg_dir))
         self.all_dirs = [self.lib_dir, self.log_dir]
-
-    @staticmethod
-    def is_directory_empty(path) -> bool:
-        if not os.path.exists(path):
-            return True
-        if not os.path.isdir(path):
-            print(f"input path {path} is not a directory.")
-            sys.exit(1)
-        return len(os.listdir(path)) == 0
-
-    @staticmethod
-    def get_files_by_prefix(directory, prefix) -> List[str]:
-        return [
-            os.path.join(directory, filename)
-            for filename in os.listdir(directory)
-            if filename.startswith(prefix)
-        ]
-
-    @staticmethod
-    def natural_sort_keys(s):
-        return [int(text) if text.isdigit() else text.lower()
-                for text in re.split(r'(\d+)', s)]
 
     def setup_directory(self) -> None:
         for dir in self.all_dirs:
@@ -250,6 +227,9 @@ class ServiceAccess(ServiceBase):
         time.sleep(1)
         print("access started")
 
+SERVICE_CHOICES = ['all', 'depends', 'blobstore', 'consul', 'kafka',
+                   'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access']
+
 class VstartManager:
     SERVICE_GROUPS = {
         'consul':      {'list_attr': 'services_consul'},
@@ -263,10 +243,10 @@ class VstartManager:
     COMPOSITE_SERVICES = {
         'depends':    ['consul', 'kafka'],
         'blobstore':  ['clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
-        'all':        ['consul', 'kafka', 'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
     }
 
     def __init__(self) -> None:
+        self.COMPOSITE_SERVICES['all'] = self.COMPOSITE_SERVICES['depends'] + self.COMPOSITE_SERVICES['blobstore']
         self.args = self._parse_args()
 
     def _parse_args(self) -> argparse.Namespace:
@@ -275,17 +255,11 @@ class VstartManager:
                             help='Specify the version of Blobstore')
         parser.add_argument('--az-num', type=str, default='one', choices=['one', 'two', 'three'],
                             help='Number of availability zones to create')
-        parser.add_argument('--start', type=str, default='',
-                            choices=['all', 'depends', 'blobstore', 'consul', 'kafka',
-                                     'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+        parser.add_argument('--start', type=str, default='', choices=SERVICE_CHOICES,
                             help='Start specific service by name')
-        parser.add_argument('--stop', type=str, default='',
-                            choices=['all', 'depends', 'blobstore', 'consul', 'kafka',
-                                     'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+        parser.add_argument('--stop', type=str, default='', choices=SERVICE_CHOICES,
                             help='Stop specific service by name')
-        parser.add_argument('--restart', type=str, default='',
-                            choices=['all', 'depends', 'blobstore', 'consul', 'kafka',
-                                     'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access'],
+        parser.add_argument('--restart', type=str, default='', choices=SERVICE_CHOICES,
                             help='Restart specific service by name')
         parser.add_argument('--rmdir', action='store_true', default=False,
                             help='Remove existing directories before starting services')
@@ -353,23 +327,21 @@ class VstartManager:
 
     def _execute_action(self, action: str, target: str) -> None:
         if target in self.COMPOSITE_SERVICES:
-            if action == 'start':
-                self._start_composite(target)
-            elif action == 'stop':
-                self._stop_composite(target)
-            elif action == 'restart':
-                self._stop_composite(target)
-                self._start_composite(target)
+            start = lambda: self._start_composite(target)
+            stop = lambda: self._stop_composite(target)
         elif target in self.SERVICE_GROUPS:
-            if action == 'start':
-                self._start_service_group(target)
-            elif action == 'stop':
-                self._stop_service_group(target)
-            elif action == 'restart':
-                self._stop_service_group(target)
-                self._start_service_group(target)
+            start = lambda: self._start_service_group(target)
+            stop = lambda: self._stop_service_group(target)
         else:
             raise ValueError(f"Unknown service: {target}")
+
+        if action == 'start':
+            start()
+        elif action == 'stop':
+            stop()
+        elif action == 'restart':
+            stop()
+            start()
 
     def run(self) -> None:
         cfg_dir = f"cfg-{self.args.version}/az-{self.args.az_num}"
