@@ -49,10 +49,14 @@ class ServiceBase(ABC):
 
     def stop_service(self) -> None:
         print(f"stopping {self.process_identifier} ...")
+        current_pid = os.getpid()
         for pid in glob.glob("/proc/[0-9]*"):
+            pid_num = int(pid.split("/")[-1])
+            if pid_num == current_pid:
+                continue
             try:
                 if self.process_identifier in open(f"{pid}/cmdline").read().replace("\0", " "):
-                    os.kill(int(pid.split("/")[-1]), signal.SIGKILL)
+                    os.kill(pid_num, signal.SIGKILL)
             except (FileNotFoundError, ProcessLookupError, PermissionError):
                 pass
         time.sleep(1)
@@ -125,7 +129,8 @@ class ServiceClustermgr(ServiceBase):
         while True:
             result = common.CommandExecutor.run_http_get_json(url)
             if isinstance(result, dict):
-                raft_state = result.get('raft_status', {}).get('raftState')
+                raft_status = result.get('raft_status', {})
+                raft_state = raft_status.get('raftState') or raft_status.get('raft_state')
                 if raft_state in expected_states:
                     print("clustermgr started")
                     break
@@ -228,7 +233,7 @@ class ServiceAccess(ServiceBase):
         print("access started")
 
 SERVICE_CHOICES = ['all', 'depends', 'blobstore', 'consul', 'kafka',
-                   'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access']
+                   'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access', 'shardnode']
 
 class VstartManager:
     SERVICE_GROUPS = {
@@ -239,6 +244,7 @@ class VstartManager:
         'proxy':       {'list_attr': 'services_proxy'},
         'scheduler':   {'list_attr': 'services_scheduler'},
         'access':      {'list_attr': 'services_access'},
+        'shardnode':   {'list_attr': 'services_shardnode'},
     }
     COMPOSITE_SERVICES = {
         'depends':    ['consul', 'kafka'],
@@ -248,6 +254,9 @@ class VstartManager:
     def __init__(self) -> None:
         self.COMPOSITE_SERVICES['all'] = self.COMPOSITE_SERVICES['depends'] + self.COMPOSITE_SERVICES['blobstore']
         self.args = self._parse_args()
+
+    def _is_version_v15(self) -> bool:
+        return self.args.version == '1.5.x'
 
     def _parse_args(self) -> argparse.Namespace:
         parser = argparse.ArgumentParser(description="Vstart Manager for Blobstore")
@@ -286,6 +295,7 @@ class VstartManager:
         self.services_access = [
             ServiceAccess(self.args, self.dir_manager, "access.json", "access.json", "access-start.log"),
         ]
+        self.services_shardnode = []
 
     def setup_services_one_az(self) -> None:
         self.services_blobnode = [
@@ -301,6 +311,11 @@ class VstartManager:
     def setup_services_three_az(self) -> None:
         print("Three AZ setup is not implemented yet.")
         exit(1)
+
+    def setup_services_shardnode(self) -> None:
+        self.services_shardnode = [
+            ServiceShardnode(self.args, self.dir_manager, "shardnode.json", "shardnode.json", "shardnode-start.log"),
+        ]
 
     def _start_service_group(self, group_name: str) -> None:
         config = self.SERVICE_GROUPS[group_name]
@@ -327,21 +342,23 @@ class VstartManager:
 
     def _execute_action(self, action: str, target: str) -> None:
         if target in self.COMPOSITE_SERVICES:
-            start = lambda: self._start_composite(target)
-            stop = lambda: self._stop_composite(target)
+            if action == 'start':
+                self._start_composite(target)
+            elif action == 'stop':
+                self._stop_composite(target)
+            elif action == 'restart':
+                self._stop_composite(target)
+                self._start_composite(target)
         elif target in self.SERVICE_GROUPS:
-            start = lambda: self._start_service_group(target)
-            stop = lambda: self._stop_service_group(target)
+            if action == 'start':
+                self._start_service_group(target)
+            elif action == 'stop':
+                self._stop_service_group(target)
+            elif action == 'restart':
+                self._stop_service_group(target)
+                self._start_service_group(target)
         else:
             raise ValueError(f"Unknown service: {target}")
-
-        if action == 'start':
-            start()
-        elif action == 'stop':
-            stop()
-        elif action == 'restart':
-            stop()
-            start()
 
     def run(self) -> None:
         cfg_dir = f"cfg-{self.args.version}/az-{self.args.az_num}"
@@ -360,6 +377,11 @@ class VstartManager:
         else:
             print(f"Invalid az-num: {self.args.az_num}")
             exit(1)
+
+        if self._is_version_v15():
+            self.setup_services_shardnode()
+            self.COMPOSITE_SERVICES['blobstore'].append('shardnode')
+            self.COMPOSITE_SERVICES['all'] = self.COMPOSITE_SERVICES['depends'] + self.COMPOSITE_SERVICES['blobstore']
 
         actions = []
         if self.args.start:

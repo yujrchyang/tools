@@ -34,17 +34,24 @@
     "disk_config":{
         "set_default_switch": true,
         "must_mount_point": false,
+        "disk_reserved_space_B": 1,
+        "compact_reserved_space_B": 1,
         "data_qos": {
-            "read_mbps": 100,
-            "write_mbps": 60,
-            "background_mbps": 20
+            "disk_bandwidth_mb": 100,
+            "disk_iops": 2000,
+            "level": {
+                "read":       {"mbps": 100, "concurrency": 64},
+                "write":      {"mbps": 60,  "concurrency": 64},
+                "delete":     {"mbps": 60,  "concurrency": 32},
+                "background": {"mbps": 20,  "concurrency": 32}
+            }
         }
     },
     "log": {
-        "level": "info",
+        "level": "debug",
         "filename": "./run/log/blobnode-z1.log"
     },
     "auditlog":{
-        "logdir":""
+        "logdir":"./run/log/auditlog/blobnode-z1"
     }
 }

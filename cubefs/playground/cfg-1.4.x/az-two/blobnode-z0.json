@@ -17,7 +17,12 @@
         {"path": "./run/lib/disks/disk7", "auto_format": true, "disable_sync": true},
         {"path": "./run/lib/disks/disk8", "auto_format": true, "disable_sync": true},
         {"path": "./run/lib/disks/disk9", "auto_format": true, "disable_sync": true},
-        {"path": "./run/lib/disks/disk10", "auto_format": true, "disable_sync": true}
+        {"path": "./run/lib/disks/disk10", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk11", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk12", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk13", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk14", "auto_format": true, "disable_sync": true},
+        {"path": "./run/lib/disks/disk15", "auto_format": true, "disable_sync": true}
     ],
     "clustermgr": {
         "hosts": [
