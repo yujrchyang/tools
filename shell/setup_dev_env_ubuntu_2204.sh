@@ -231,6 +231,9 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash 
   node -v && \
   npm -v
 
+# install npm packages
+npm install -g markdownlint-cli
+
 # install terraform
 pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   wget https://releases.hashicorp.com/terraform/1.13.4/$pkgname && \
@@ -249,6 +252,17 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
 curl -fsSL https://opencode.ai/install | bash
 ## install skills
 npx skills add https://github.com/jimliu/baoyu-skills --skill baoyu-translate
+npx skills add https://github.com/rshade/agent-skills --skill markdownlint
+npx skills add https://github.com/waybarrios/opencode-power-pack --skill code-explorer
+npx skills add https://github.com/leonxlnx/taste-skill --skill redesign-existing-projects
+npx skills add https://github.com/wondelai/skills --skill software-design-philosophy
+npx skills add https://github.com/vasilyu1983/ai-agents-public --skill software-architecture-design
+npx skills add https://github.com/mattpocock/skills --skill improve-codebase-architecture
+npx skills add https://github.com/mattpocock/skills --skill tdd
+npx skills add https://github.com/github/awesome-copilot --skill quasi-coder
+npx skills add https://github.com/obra/superpowers --skill requesting-code-review
+npx skills add https://github.com/mattpocock/skills --skill obsidian-vault
+npx skills add https://github.com/kepano/obsidian-skills --skill obsidian-markdown
 
 # install nvim
 ## install dep julialang/neovim/tree-sitter
