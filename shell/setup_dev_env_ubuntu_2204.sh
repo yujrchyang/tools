@@ -185,6 +185,10 @@ wget -O nasm-2.16.03.tar.gz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/n
   make -j$(nproc) && $SUDO make install && \
   cd .. && rm -rf nasm-2.16.03*
 
+# install other clis
+## autocorrect
+curl -sSL https://git.io/JcGER | sh
+
 # install go 1.24
 pkgname=go1.24.13.linux-$ARCH.tar.gz && \
   wget https://go.dev/dl/$pkgname && \
