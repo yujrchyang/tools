@@ -267,6 +267,8 @@ npx skills add https://github.com/github/awesome-copilot --skill quasi-coder
 npx skills add https://github.com/obra/superpowers --skill requesting-code-review
 npx skills add https://github.com/mattpocock/skills --skill obsidian-vault
 npx skills add https://github.com/kepano/obsidian-skills --skill obsidian-markdown
+npx skills add https://github.com/anthropics/knowledge-work-plugins --skill testing-strategy
+npx skills add https://github.com/wondelai/skills --skill ddia-systems
 
 # install nvim
 ## install dep julialang/neovim/tree-sitter
