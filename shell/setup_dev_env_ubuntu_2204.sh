@@ -130,10 +130,20 @@ alias gcm='git commit -m'
 alias gp='git push'
 
 export TERM=xterm-256color
-
 export USE_CCACHE=1
 export CCACHE_SLOPPINESS=file_macro,include_file_mtime,time_macros
 export CCACHE_UMASK=002
+export PYTHONDONTWRITEBYTECODE=1
+
+# Shortcut function to force-sync with remote branch (replaces alias)
+git-sync() {
+    # If no branch name is provided, default to the current branch
+    local branch=${1:-$(git branch --show-current)}
+    echo "Fetching the latest data from origin..."
+    git fetch origin && \
+    echo "Hard resetting to origin/$branch..." && \
+    git reset --hard "origin/$branch"
+}
 
 EOF
 
@@ -165,10 +175,20 @@ alias ls='exa'
 alias gs='git status'
 
 export TERM=xterm-256color
-
 export USE_CCACHE=1
 export CCACHE_SLOPPINESS=file_macro,include_file_mtime,time_macros
 export CCACHE_UMASK=002
+export PYTHONDONTWRITEBYTECODE=1
+
+# Shortcut function to force-sync with remote branch (replaces alias)
+git-sync() {
+    # If no branch name is provided, default to the current branch
+    local branch=${1:-$(git branch --show-current)}
+    echo "Fetching the latest data from origin..."
+    git fetch origin && \
+    echo "Hard resetting to origin/$branch..." && \
+    git reset --hard "origin/$branch"
+}
 
 EOF
 
