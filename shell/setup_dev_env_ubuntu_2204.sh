@@ -145,6 +145,52 @@ git-sync() {
     git reset --hard "origin/$branch"
 }
 
+# ==========================================
+# Host Proxy Configuration (Auto-detect or Manual IP)
+# ==========================================
+proxy() {
+    local host_ip="$1"
+
+    # If no IP is provided, automatically detect the default gateway IP
+    if [ -z "$host_ip" ]; then
+        host_ip=$(ip route show default 2>/dev/null | awk '/default/ {print $3}')
+
+        # Fallback method if gateway IP is not found (compatible with WSL/Hyper-V)
+        if [ -z "$host_ip" ]; then
+            host_ip=$(cat /etc/resolv.conf 2>/dev/null | grep nameserver | awk '{print $2}')
+        fi
+    fi
+
+    local port=7890
+
+    if [ -n "$host_ip" ]; then
+        export http_proxy="http://${host_ip}:${port}"
+        export https_proxy="http://${host_ip}:${port}"
+        export all_proxy="socks5://${host_ip}:${port}"
+
+        # Set uppercase environment variables for tools that require them (e.g., curl, git, go)
+        export HTTP_PROXY="$http_proxy"
+        export HTTPS_PROXY="$https_proxy"
+        export ALL_PROXY="$all_proxy"
+
+        echo "Proxy Enabled --> ${host_ip}:${port}"
+    else
+        echo "Error: Could not determine host/gateway IP!"
+    fi
+}
+unproxy() {
+    unset http_proxy https_proxy all_proxy
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+    echo "Proxy Disabled"
+}
+showproxy() {
+    echo "http_proxy  = $http_proxy"
+    echo "https_proxy = $https_proxy"
+    echo "all_proxy   = $all_proxy"
+}
+# Uncomment the line below to enable proxy automatically on terminal startup (auto-detects IP):
+# proxy
+
 EOF
 
 source $HOME/.bashrc
@@ -189,6 +235,52 @@ git-sync() {
     echo "Hard resetting to origin/$branch..." && \
     git reset --hard "origin/$branch"
 }
+
+# ==========================================
+# Host Proxy Configuration (Auto-detect or Manual IP)
+# ==========================================
+proxy() {
+    local host_ip="$1"
+
+    # If no IP is provided, automatically detect the default gateway IP
+    if [ -z "$host_ip" ]; then
+        host_ip=$(ip route show default 2>/dev/null | awk '/default/ {print $3}')
+
+        # Fallback method if gateway IP is not found (compatible with WSL/Hyper-V)
+        if [ -z "$host_ip" ]; then
+            host_ip=$(cat /etc/resolv.conf 2>/dev/null | grep nameserver | awk '{print $2}')
+        fi
+    fi
+
+    local port=7890
+
+    if [ -n "$host_ip" ]; then
+        export http_proxy="http://${host_ip}:${port}"
+        export https_proxy="http://${host_ip}:${port}"
+        export all_proxy="socks5://${host_ip}:${port}"
+
+        # Set uppercase environment variables for tools that require them (e.g., curl, git, go)
+        export HTTP_PROXY="$http_proxy"
+        export HTTPS_PROXY="$https_proxy"
+        export ALL_PROXY="$all_proxy"
+
+        echo "Proxy Enabled --> ${host_ip}:${port}"
+    else
+        echo "Error: Could not determine host/gateway IP!"
+    fi
+}
+unproxy() {
+    unset http_proxy https_proxy all_proxy
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+    echo "Proxy Disabled"
+}
+showproxy() {
+    echo "http_proxy  = $http_proxy"
+    echo "https_proxy = $https_proxy"
+    echo "all_proxy   = $all_proxy"
+}
+# Uncomment the line below to enable proxy automatically on terminal startup (auto-detects IP):
+# proxy
 
 EOF
 
