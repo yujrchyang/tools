@@ -1,16 +1,107 @@
 #!/usr/bin/env python3
 import os
 import sys
-import argparse
+import json
 import shutil
-import time
 import signal
+import time
 import glob
+import subprocess
+import argparse
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 from abc import ABC, abstractmethod
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 
-import common
+
+class CommandExecutor:
+    """Command execution helper: subprocess calls + HTTP GET for service checks."""
+
+    @staticmethod
+    def _get_run_kwargs(capture_output: bool) -> Dict[str, Any]:
+        if sys.version_info >= (3, 7):
+            text_mode = {"text": True}
+        else:
+            text_mode = {"universal_newlines": True}
+        return {
+            "shell": False,
+            "stdout": subprocess.PIPE if capture_output else None,
+            "stderr": subprocess.PIPE if capture_output else None,
+            **text_mode,
+        }
+
+    @staticmethod
+    def run(command: List[str], capture_output: bool = True) -> str:
+        try:
+            result = subprocess.run(
+                command,
+                check=True,
+                **CommandExecutor._get_run_kwargs(capture_output)
+            )
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            print(f"failed to exec : {command} - {e.stderr}", file=sys.stderr)
+            sys.exit(1)
+
+    @staticmethod
+    def run_raw(command: List[str]) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            command,
+            check=False,
+            **CommandExecutor._get_run_kwargs(True)
+        )
+
+    @staticmethod
+    def run_background_daemon(command: List[str], logfile: str):
+        pid = os.fork()
+        if pid > 0:
+            return pid
+        os.setsid()
+        pid = os.fork()
+        if pid > 0:
+            os._exit(0)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if logfile == "":
+            logfile = "/dev/null"
+        with open(logfile, 'ab', buffering=0) as log:
+            os.dup2(log.fileno(), sys.stdout.fileno())
+            os.dup2(log.fileno(), sys.stderr.fileno())
+        with open('/dev/null', 'rb') as f:
+            os.dup2(f.fileno(), sys.stdin.fileno())
+        os.execvp(command[0], command)
+        os._exit(255)
+
+    @staticmethod
+    def run_http_get_json(url: str, timeout=5) -> Any:
+        try:
+            with urlopen(url, timeout=timeout) as response:
+                if response.status != 200:
+                    return {}
+                return json.loads(response.read().decode('utf-8'))
+        except (URLError, HTTPError, TimeoutError, ValueError,
+               UnicodeDecodeError, AttributeError):
+            pass
+        return {}
+
+
+class ConfigFileManager:
+    @staticmethod
+    def get_json_data(json_path: str) -> Dict:
+        try:
+            with open(json_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"error: input json file {json_path} does not exist.")
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            print(f"error: invalid json format of {json_path} : {str(e)}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"error: read json file {json_path} failed : {str(e)}")
+            sys.exit(1)
+
 
 class DirectoryManager:
     def __init__(self, cfg_dir: str) -> None:
@@ -23,8 +114,7 @@ class DirectoryManager:
 
     def setup_directory(self) -> None:
         for dir in self.all_dirs:
-            dir_path = Path(dir)
-            dir_path.mkdir(parents=True, exist_ok=True)
+            Path(dir).mkdir(parents=True, exist_ok=True)
 
     def remove_directory(self) -> None:
         for dir in self.all_dirs:
@@ -32,7 +122,13 @@ class DirectoryManager:
             if dir_path.exists():
                 shutil.rmtree(dir_path)
 
+
 class ServiceBase(ABC):
+    # Binary name (under dir_manager.bin_dir) for services launched the standard
+    # way: `<bin_dir>/<BINARY> -f <cfg_file>`. Subclasses with custom launch
+    # (consul/kafka) override _setup_service.
+    BINARY: str = ""
+
     def __init__(self, args: argparse.Namespace, dir_manager: DirectoryManager,
                  process_identifier: str, cfg_file: str, start_log_file: str) -> None:
         self.args = args
@@ -61,16 +157,39 @@ class ServiceBase(ABC):
                 pass
         time.sleep(1)
 
-    @abstractmethod
+    # -- shared helpers ----------------------------------------------------
+
     def _setup_service(self) -> None:
-        raise NotImplementedError
+        """Default setup: launch bin_dir/BINARY with -f cfg_file."""
+        print(f"starting {self.BINARY} ...")
+        self.command = [f"{self.dir_manager.bin_dir}/{self.BINARY}", "-f", self.cfg_file]
+
+    def _start_service(self) -> None:
+        CommandExecutor.run_background_daemon(self.command, self.start_log_file)
+
+    @staticmethod
+    def _wait_http_ready(url: str, ready_fn, name: str) -> None:
+        """Poll url until ready_fn(result) is True, then print '<name> started'."""
+        print(f"checking {name} ...")
+        while True:
+            if ready_fn(CommandExecutor.run_http_get_json(url)):
+                print(f"{name} started")
+                break
+            time.sleep(1)
+
+    def _cfg_url(self, path: str = "/stat") -> str:
+        port = ConfigFileManager.get_json_data(self.cfg_file)['bind_addr']
+        return f"http://127.0.0.1{port}{path}"
+
+    @staticmethod
+    def _mkdir_paths(paths) -> None:
+        for p in paths:
+            Path(p).mkdir(parents=True, exist_ok=True)
 
     @abstractmethod
     def _check_service(self) -> None:
         raise NotImplementedError
 
-    def _start_service(self) -> None:
-        common.CommandExecutor.run_background_daemon(self.command, self.start_log_file)
 
 class ServiceConsul(ServiceBase):
     def _setup_service(self) -> None:
@@ -78,162 +197,179 @@ class ServiceConsul(ServiceBase):
         self.command = ["/usr/bin/consul", "agent", "-dev", "-client", "0.0.0.0"]
 
     def _check_service(self) -> None:
-        print("checking consul ...")
-        url = "http://localhost:8500/v1/status/leader"
-        while True:
-            result = common.CommandExecutor.run_http_get_json(url)
-            if isinstance(result, str) and result == "127.0.0.1:8300":
-                print("consul started")
-                break
-            time.sleep(1)
+        self._wait_http_ready(
+            "http://localhost:8500/v1/status/leader",
+            lambda r: isinstance(r, str) and r == "127.0.0.1:8300", "consul")
+
 
 class ServiceKafka(ServiceBase):
+    KAFKA_PATH = "/usr/bin/kafka_2.13-3.1.0"
+
     def _setup_service(self) -> None:
         print("starting kafka ...")
-        kafka_path = "/usr/bin/kafka_2.13-3.1.0"
         # format log directories
-        formatted_file = "/tmp/kraft-combined-logs/meta.properties"
-        if not os.path.exists(formatted_file):
-            cluster_id = common.CommandExecutor.run([f"{kafka_path}/bin/kafka-storage.sh", "random-uuid"])
+        if not os.path.exists("/tmp/kraft-combined-logs/meta.properties"):
+            cluster_id = CommandExecutor.run([f"{self.KAFKA_PATH}/bin/kafka-storage.sh", "random-uuid"])
             if cluster_id.endswith('\n') or cluster_id.endswith('\r'):
                 cluster_id = cluster_id[:-1]
-            common.CommandExecutor.run([f"{kafka_path}/bin/kafka-storage.sh", "format", "-t", cluster_id,
-                                 "-c", f"{kafka_path}/config/kraft/server.properties"])
-        self.command = [f"{kafka_path}/bin/kafka-server-start.sh", "-daemon",
-                        f"{kafka_path}/config/kraft/server.properties"]
+            CommandExecutor.run([f"{self.KAFKA_PATH}/bin/kafka-storage.sh", "format", "-t", cluster_id,
+                                 "-c", f"{self.KAFKA_PATH}/config/kraft/server.properties"])
+        self.command = [f"{self.KAFKA_PATH}/bin/kafka-server-start.sh", "-daemon",
+                        f"{self.KAFKA_PATH}/config/kraft/server.properties"]
 
     def _check_service(self) -> None:
         print("checking kafka ...")
-        kafka_path = "/usr/bin/kafka_2.13-3.1.0"
-        cmd = [f"{kafka_path}/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
+        cmd = [f"{self.KAFKA_PATH}/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
         while True:
-            res = common.CommandExecutor.run_raw(cmd)
-            if res.returncode == 0:
+            if CommandExecutor.run_raw(cmd).returncode == 0:
                 print("kafka started")
                 break
             time.sleep(1)
 
+
 class ServiceClustermgr(ServiceBase):
-    def _setup_service(self) -> None:
-        print("starting clustermgr ...")
-        self.command = [f"{self.dir_manager.bin_dir}/clustermgr", "-f", self.cfg_file]
+    BINARY = "clustermgr"
 
     def _check_service(self) -> None:
         time.sleep(1)
 
     @staticmethod
     def check_started() -> None:
-        print("checking clustermgr ...")
-        url = "http://127.0.0.1:9998/stat"
-        expected_states=("StateLeader", "StateReplicate", "StateFollower")
-        while True:
-            result = common.CommandExecutor.run_http_get_json(url)
-            if isinstance(result, dict):
-                raft_status = result.get('raft_status', {})
-                raft_state = raft_status.get('raftState') or raft_status.get('raft_state')
-                if raft_state in expected_states:
-                    print("clustermgr started")
-                    break
-            time.sleep(1)
+        expected = ("StateLeader", "StateReplicate", "StateFollower")
+
+        def ready(r) -> bool:
+            if not isinstance(r, dict):
+                return False
+            rs = r.get('raft_status', {})
+            return (rs.get('raftState') or rs.get('raft_state')) in expected
+
+        ServiceBase._wait_http_ready("http://127.0.0.1:9998/stat", ready, "clustermgr")
+
 
 class ServiceBlobnode(ServiceBase):
+    BINARY = "blobnode"
+
     def _setup_service(self) -> None:
-        print("starting blobnode ...")
+        super()._setup_service()
         self._setup_disks_dir()
-        self.command = [f"{self.dir_manager.bin_dir}/blobnode", "-f", self.cfg_file]
 
     def _check_service(self) -> None:
-        print("checking blobnode ...")
-        blobnode_config = common.ConfigFileManager.get_json_data(self.cfg_file)
-        port = blobnode_config['bind_addr']
-        url = f"http://127.0.0.1{port}/stat"
-        while True:
-            result = common.CommandExecutor.run_http_get_json(url)
-            if isinstance(result, list) and len(result) >= 8:
-                print("blobnode started")
-                break
-            time.sleep(1)
+        self._wait_http_ready(
+            self._cfg_url("/stat"),
+            lambda r: isinstance(r, list) and len(r) >= 8, self.BINARY)
 
     def _setup_disks_dir(self) -> None:
-        blobnode_config = common.ConfigFileManager.get_json_data(self.cfg_file)
-        for disk in blobnode_config['disks']:
-            disk_path = Path(disk['path'])
-            disk_path.mkdir(parents=True, exist_ok=True)
+        cfg = ConfigFileManager.get_json_data(self.cfg_file)
+        self._mkdir_paths(d['path'] for d in cfg['disks'])
+
 
 class ServiceProxy(ServiceBase):
-    def _setup_service(self) -> None:
-        print("starting proxy ...")
-        self.command = [f"{self.dir_manager.bin_dir}/proxy", "-f", self.cfg_file]
+    BINARY = "proxy"
+
+    # Built-in code mode name to numeric ID mapping.
+    # Mirrors the hardcoded constName2CodeMode map in
+    # blobstore/common/codemode/codemode.go so that we can resolve mode
+    # names to IDs locally without depending on the /volume/codemode/list
+    # endpoint (which only exists in the redundancer fork, not in the
+    # community CubeFS).
+    CODEMODE_NAME_TO_ID: Dict[str, int] = {
+        "EC15P12":       1,
+        "EC6P6":         2,
+        "EC16P20L2":     3,
+        "EC6P10L2":      4,
+        "EC6P3L3":       5,
+        "EC6P6Align0":   6,
+        "EC6P6Align512": 7,
+        "EC4P4L2":       8,
+        "EC12P4":        9,
+        "EC16P4":        10,
+        "EC3P3":         11,
+        "EC10P4":        12,
+        "EC6P3":         13,
+        "EC12P9":        14,
+        "EC24P8":        15,
+        "Replica3":      100,
+        "Replica3OneAZ": 101,
+    }
 
     def _check_service(self) -> None:
         print("checking proxy ...")
-        proxy_config = common.ConfigFileManager.get_json_data(self.cfg_file)
-        port = proxy_config['bind_addr']
-        codemode = 11
-        if self.args.az_num == 'two':
-            codemode = 4
-        url = f"http://127.0.0.1{port}/volume/list?code_mode={codemode}"
         while True:
-            result = common.CommandExecutor.run_http_get_json(url)
-            if isinstance(result, dict) and 'vids' in result and len(result['vids']) > 0:
-                print("proxy started")
-                break
+            for cm in self._get_enabled_codemodes():
+                result = CommandExecutor.run_http_get_json(
+                    self._cfg_url(f"/volume/list?code_mode={cm}"))
+                if isinstance(result, dict) and 'vids' in result and len(result['vids']) > 0:
+                    print("proxy started")
+                    return
             time.sleep(1)
+
+    @classmethod
+    def _get_enabled_codemodes(cls) -> List[int]:
+        """Return the numeric code mode IDs that are enabled in clustermgr.
+
+        Queries /config/get?key=code_mode (available in both community CubeFS
+        and redundancer) for the policy list, filters by the enable flag,
+        then maps each mode_name to its numeric ID via the local
+        CODEMODE_NAME_TO_ID table (mirroring the Go-side
+        constName2CodeMode map).
+        """
+        # /config/get?key=code_mode returns a JSON-encoded string
+        # (double-encoded by RespondJSON), so decode twice if needed.
+        raw = CommandExecutor.run_http_get_json(
+            "http://127.0.0.1:9998/config/get?key=code_mode")
+        policies: List[Dict] = []
+        if isinstance(raw, str):
+            try:
+                policies = json.loads(raw)
+            except (ValueError, TypeError):
+                pass
+        elif isinstance(raw, list):
+            policies = raw
+
+        return [cls.CODEMODE_NAME_TO_ID[p["mode_name"]]
+                for p in policies
+                if p.get("enable") and p.get("mode_name") in cls.CODEMODE_NAME_TO_ID]
+
 
 class ServiceScheduler(ServiceBase):
-    def _setup_service(self) -> None:
-        print("starting scheduler ...")
-        self.command = [f"{self.dir_manager.bin_dir}/scheduler", "-f", self.cfg_file]
+    BINARY = "scheduler"
 
     def _check_service(self) -> None:
-        print("checking scheduler ...")
-        scheduler_config = common.ConfigFileManager.get_json_data(self.cfg_file)
-        port = scheduler_config['bind_addr']
-        url = f"http://127.0.0.1{port}/stats"
-        while True:
-            result = common.CommandExecutor.run_http_get_json(url)
-            if isinstance(result, dict) and len(result) >= 2:
-                print("scheduler started")
-                break
-            time.sleep(1)
+        self._wait_http_ready(
+            self._cfg_url("/stats"),
+            lambda r: isinstance(r, dict) and len(r) >= 2, self.BINARY)
+
 
 class ServiceShardnode(ServiceBase):
+    BINARY = "shardnode"
+
     def _setup_service(self) -> None:
-        print("starting shardnode ...")
+        super()._setup_service()
         self._setup_disks_dir()
-        self.command = [f"{self.dir_manager.bin_dir}/shardnode", "-f", self.cfg_file]
 
     def _check_service(self) -> None:
-        print("checking shardnode ...")
-        shardnode_config = common.ConfigFileManager.get_json_data(self.cfg_file)
-        port = shardnode_config['bind_addr']
-        url = f"http://127.0.0.1{port}/blob/delete/stats"
-        expected_keys=("success_per_min", "failed_per_min")
-        while True:
-            result = common.CommandExecutor.run_http_get_json(url)
-            if isinstance(result, dict) and all(key in result for key in expected_keys):
-                print("shardnode started")
-                break
-            time.sleep(1)
+        expected = ("success_per_min", "failed_per_min")
+        self._wait_http_ready(
+            self._cfg_url("/blob/delete/stats"),
+            lambda r: isinstance(r, dict) and all(k in r for k in expected), self.BINARY)
 
     def _setup_disks_dir(self) -> None:
-        shardnode_config = common.ConfigFileManager.get_json_data(self.cfg_file)
-        disks = shardnode_config.get("disks_config", {}).get("disks", [])
-        for disk_path in disks:
-            Path(disk_path).mkdir(parents=True, exist_ok=True)
+        cfg = ConfigFileManager.get_json_data(self.cfg_file)
+        self._mkdir_paths(cfg.get("disks_config", {}).get("disks", []))
+
 
 class ServiceAccess(ServiceBase):
-    def _setup_service(self) -> None:
-        print("starting access ...")
-        self.command = [f"{self.dir_manager.bin_dir}/access", "-f", self.cfg_file]
+    BINARY = "access"
 
     def _check_service(self) -> None:
         print("checking access ...")
         time.sleep(1)
         print("access started")
 
+
 SERVICE_CHOICES = ['all', 'depends', 'blobstore', 'consul', 'kafka',
                    'clustermgr', 'blobnode', 'proxy', 'scheduler', 'access', 'shardnode']
+
 
 class VstartManager:
     SERVICE_GROUPS = {
@@ -317,6 +453,17 @@ class VstartManager:
             ServiceShardnode(self.args, self.dir_manager, "shardnode.json", "shardnode.json", "shardnode-start.log"),
         ]
 
+    def _resolve_groups(self, target: str) -> List[str]:
+        """Return the ordered list of service-group names to operate on.
+
+        A composite target expands to its members; a single group wraps as [target].
+        """
+        if target in self.COMPOSITE_SERVICES:
+            return self.COMPOSITE_SERVICES[target]
+        if target in self.SERVICE_GROUPS:
+            return [target]
+        raise ValueError(f"Unknown service: {target}")
+
     def _start_service_group(self, group_name: str) -> None:
         config = self.SERVICE_GROUPS[group_name]
         services = getattr(self, config['list_attr'])
@@ -327,38 +474,25 @@ class VstartManager:
             hook(services)
 
     def _stop_service_group(self, group_name: str) -> None:
-        config = self.SERVICE_GROUPS[group_name]
-        services = getattr(self, config['list_attr'])
+        services = getattr(self, self.SERVICE_GROUPS[group_name]['list_attr'])
         for service in services:
             service.stop_service()
 
-    def _start_composite(self, name: str) -> None:
-        for svc in self.COMPOSITE_SERVICES[name]:
-            self._start_service_group(svc)
-
-    def _stop_composite(self, name: str) -> None:
-        for svc in reversed(self.COMPOSITE_SERVICES[name]):
-            self._stop_service_group(svc)
-
     def _execute_action(self, action: str, target: str) -> None:
-        if target in self.COMPOSITE_SERVICES:
-            if action == 'start':
-                self._start_composite(target)
-            elif action == 'stop':
-                self._stop_composite(target)
-            elif action == 'restart':
-                self._stop_composite(target)
-                self._start_composite(target)
-        elif target in self.SERVICE_GROUPS:
-            if action == 'start':
-                self._start_service_group(target)
-            elif action == 'stop':
-                self._stop_service_group(target)
-            elif action == 'restart':
-                self._stop_service_group(target)
-                self._start_service_group(target)
-        else:
-            raise ValueError(f"Unknown service: {target}")
+        groups = self._resolve_groups(target)
+        # stop composite groups in reverse dependency order
+        stop_order = reversed(groups) if target in self.COMPOSITE_SERVICES else groups
+        if action == 'stop':
+            for g in stop_order:
+                self._stop_service_group(g)
+        elif action == 'start':
+            for g in groups:
+                self._start_service_group(g)
+        elif action == 'restart':
+            for g in stop_order:
+                self._stop_service_group(g)
+            for g in groups:
+                self._start_service_group(g)
 
     def run(self) -> None:
         cfg_dir = f"cfg-{self.args.version}/az-{self.args.az_num}"
@@ -397,12 +531,14 @@ class VstartManager:
             print("Removing all directories...")
             self.dir_manager.remove_directory()
 
+
 def main():
     if sys.version_info.major < 3:
         print(f"Error: Python 3 or higher is required, but found {sys.version}")
         sys.exit(1)
 
     VstartManager().run()
+
 
 if __name__ == "__main__":
     main()

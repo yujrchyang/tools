@@ -1,10 +1,62 @@
 #!/usr/bin/env python3
 import sys
-import argparse
 import json
-from typing import Any, List, Dict
+import argparse
+from typing import Any, Dict, List
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 
-import common
+
+class CommandExecutor:
+    """HTTP helpers for clustermgr/blobnode/scheduler stat queries."""
+
+    @staticmethod
+    def run_http_get_json(url: str, timeout=5) -> Any:
+        try:
+            with urlopen(url, timeout=timeout) as response:
+                if response.status != 200:
+                    return {}
+                return json.loads(response.read().decode('utf-8'))
+        except (URLError, HTTPError, TimeoutError, ValueError,
+               UnicodeDecodeError, AttributeError):
+            pass
+        return {}
+
+    @staticmethod
+    def run_http_post(url: str, timeout=5) -> bool:
+        try:
+            req = Request(url=url, method='POST')
+            with urlopen(req, timeout=timeout) as response:
+                return response.status == 200
+        except (URLError, HTTPError, TimeoutError, UnicodeDecodeError, AttributeError):
+            pass
+        return False
+
+
+class HumanReadable:
+    @staticmethod
+    def human_bytes(bytes: int) -> str:
+        bytes_float = float(bytes)
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_float < 1024.0:
+                return f"{bytes_float:.2f}{unit}" if unit != 'B' else f"{int(bytes_float)}{unit}"
+            bytes_float /= 1024.0
+        return f"{bytes_float:.2f}PB"
+
+    @staticmethod
+    def human_disk_stats(status: int) -> str:
+        if status == 1:
+            return "Normal"
+        elif status == 2:
+            return "Broken"
+        elif status == 3:
+            return "Repairing"
+        elif status == 4:
+            return "Repaired"
+        elif status == 5:
+            return "Dropped"
+        else:
+            return "Unknow"
 
 if sys.version_info < (3, 10):
     sys.exit(f"Error: Python 3.10 or higher is required, but found {sys.version}")
@@ -13,7 +65,7 @@ class HandleService():
     @staticmethod
     def get_disk_host_from_cm(host: str, disk_id: int) -> str:
         url = f"{host}/disk/info?disk_id={disk_id}"
-        response_data = common.CommandExecutor.run_http_get_json(url)
+        response_data = CommandExecutor.run_http_get_json(url)
         if isinstance(response_data, dict) and "host" in response_data:
             return response_data["host"]
         sys.exit(f"don't get disk {disk_id} info from {host}")
@@ -21,7 +73,7 @@ class HandleService():
     @staticmethod
     def get_vuid_list_from_cm(host: str, disk_id: int) -> List[Dict[str, Any]]:
         url = f"{host}/volume/unit/list?disk_id={disk_id}"
-        response_data = common.CommandExecutor.run_http_get_json(url)
+        response_data = CommandExecutor.run_http_get_json(url)
         if isinstance(response_data, dict) and "volume_unit_infos" in response_data:
             return response_data["volume_unit_infos"]
         return []
@@ -29,7 +81,7 @@ class HandleService():
     @staticmethod
     def get_bid_list_from_bn(host: str, disk_id: int, vuid: int, start_bid: int, status: int = 1, count: int = 10) -> tuple[List[Dict[str, Any]], int]:
         url = f"{host}/shard/list/diskid/{disk_id}/vuid/{vuid}/startbid/{start_bid}/status/{status}/count/{count}"
-        response_data = common.CommandExecutor.run_http_get_json(url)
+        response_data = CommandExecutor.run_http_get_json(url)
         if isinstance(response_data, dict) and "shard_infos" in response_data and "next" in response_data:
             return response_data["shard_infos"], response_data["next"]
         return [], -1
@@ -37,7 +89,7 @@ class HandleService():
     @staticmethod
     def get_disk_list_from_cm(host: str, marker: int, count: int = 10) -> tuple[List[Dict[str, Any]], int]:
         url = f"{host}/disk/list?marker={marker}&count={count}"
-        response_data = common.CommandExecutor.run_http_get_json(url)
+        response_data = CommandExecutor.run_http_get_json(url)
         if isinstance(response_data, dict) and "disks" in response_data and "marker" in response_data:
             return response_data["disks"], response_data["marker"]
         return [], -1
@@ -45,7 +97,7 @@ class HandleService():
     @staticmethod
     def get_sc_stat(host: str, task: str = "all") -> Dict[str, Any]:
         url = f"{host}/stats"
-        response_data = common.CommandExecutor.run_http_get_json(url)
+        response_data = CommandExecutor.run_http_get_json(url)
         if not isinstance(response_data, dict):
             return {}
         if task == "all":
@@ -58,7 +110,7 @@ class HandleService():
     @staticmethod
     def get_cm_stat(host: str) -> Dict[str, Any]:
         url = f"{host}/stat"
-        response_data = common.CommandExecutor.run_http_get_json(url)
+        response_data = CommandExecutor.run_http_get_json(url)
         if not isinstance(response_data, dict):
             return {}
         return response_data
@@ -66,11 +118,11 @@ class HandleService():
     @staticmethod
     def delete_shard_from_bn(host: str, disk_id: int, vuid: int, bid: int) -> bool:
         url = f"{host}/shard/markdelete/diskid/{disk_id}/vuid/{vuid}/bid/{bid}"
-        response = common.CommandExecutor.run_http_post(url)
+        response = CommandExecutor.run_http_post(url)
         if not response:
             return False
         url = f"{host}/shard/delete/diskid/{disk_id}/vuid/{vuid}/bid/{bid}"
-        return common.CommandExecutor.run_http_post(url)
+        return CommandExecutor.run_http_post(url)
 
 class CLI:
     def __init__(self) -> None:
@@ -149,14 +201,14 @@ class CLI:
             rock = disk.get("rack", "")
             host = disk.get("host", "")
             path = disk.get("path", "")
-            status = common.HumanReadable.human_disk_stats(disk.get("status", -1))
+            status = HumanReadable.human_disk_stats(disk.get("status", -1))
             readonly = disk.get("readonly", "")
             disk_set_id = disk.get("disk_set_id", "")
             node_id = disk.get("node_id", "")
             disk_id = disk.get("disk_id", "")
-            used = common.HumanReadable.human_bytes(disk.get("used", 0))
-            free = common.HumanReadable.human_bytes(disk.get("free", 0))
-            size = common.HumanReadable.human_bytes(disk.get("size", 0))
+            used = HumanReadable.human_bytes(disk.get("used", 0))
+            free = HumanReadable.human_bytes(disk.get("free", 0))
+            size = HumanReadable.human_bytes(disk.get("size", 0))
             max_chunk_cnt = disk.get("max_chunk_cnt", 0)
             free_chunk_cnt = disk.get("free_chunk_cnt", 0)
             used_chunk_cnt = disk.get("used_chunk_cnt", 0)
