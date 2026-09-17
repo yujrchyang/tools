@@ -58,7 +58,7 @@ $SUDO timedatectl set-timezone Asia/Shanghai
 basic_tools=(
   vim git wget curl net-tools iputils-ping lsof sed tree htop
   iotop strace psmisc valgrind jq bc exa netcat ncat nmap
-  unzip diffutils dosfstools xfsprogs e2fsprogs gdisk
+  unzip diffutils dosfstools xfsprogs e2fsprogs gdisk antiword
   smartmontools nvme-cli sysstat rdma-core shellcheck
   asciidoctor texinfo fakeroot dpkg-dev equivs debian-keyring
   apt-file zsh software-properties-common locales ripgrep fd-find
