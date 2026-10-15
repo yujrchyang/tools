@@ -173,20 +173,24 @@ proxy() {
         export HTTPS_PROXY="$https_proxy"
         export ALL_PROXY="$all_proxy"
 
+        export no_proxy="localhost,127.0.0.1,::1,.local"
+        export NO_PROXY="localhost,127.0.0.1,::1,.local"
+
         echo "Proxy Enabled --> ${host_ip}:${port}"
     else
         echo "Error: Could not determine host/gateway IP!"
     fi
 }
 unproxy() {
-    unset http_proxy https_proxy all_proxy
-    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+    unset http_proxy https_proxy all_proxy no_proxy
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
     echo "Proxy Disabled"
 }
 showproxy() {
     echo "http_proxy  = $http_proxy"
     echo "https_proxy = $https_proxy"
     echo "all_proxy   = $all_proxy"
+    echo "no_proxy    = $no_proxy"
 }
 # Uncomment the line below to enable proxy automatically on terminal startup (auto-detects IP):
 # proxy
@@ -264,20 +268,24 @@ proxy() {
         export HTTPS_PROXY="$https_proxy"
         export ALL_PROXY="$all_proxy"
 
+        export no_proxy="localhost,127.0.0.1,::1,.local"
+        export NO_PROXY="localhost,127.0.0.1,::1,.local"
+
         echo "Proxy Enabled --> ${host_ip}:${port}"
     else
         echo "Error: Could not determine host/gateway IP!"
     fi
 }
 unproxy() {
-    unset http_proxy https_proxy all_proxy
-    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+    unset http_proxy https_proxy all_proxy no_proxy
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
     echo "Proxy Disabled"
 }
 showproxy() {
     echo "http_proxy  = $http_proxy"
     echo "https_proxy = $https_proxy"
     echo "all_proxy   = $all_proxy"
+    echo "no_proxy    = $no_proxy"
 }
 # Uncomment the line below to enable proxy automatically on terminal startup (auto-detects IP):
 # proxy
