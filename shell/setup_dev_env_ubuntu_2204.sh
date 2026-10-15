@@ -1,6 +1,13 @@
 #!/bin/bash
 # shellcheck disable=SC1091,SC2016,SC2086,SC2046,SC2164,SC2155
 
+# NOTE: This script is designed to be executed section-by-section (copy-paste to terminal)
+# Each section uses && chaining for basic error handling - if one step fails, subsequent steps won't execute
+
+# NOTE: This script contains multiple "source $HOME/.zshrc" commands.
+# These should only be executed when your current shell is zsh.
+# If you're in bash, skip these lines or use "source $HOME/.bashrc" instead.
+
 # enable proxy
 ## ip=
 ## export https_proxy=http://$ip:7890;export http_proxy=http://$ip:7890;export all_proxy=socks5://$ip:7890
@@ -17,7 +24,11 @@ $SUDO apt update && $SUDO apt install -y ca-certificates
 # backup /etc/apt/sources.list
 $SUDO cp /etc/apt/sources.list /etc/apt/sources.list.bak.$(date +%F)
 
-# update apt source for x86
+# ==========================================
+# update apt source (choose ONE based on your arch)
+# ==========================================
+
+# For x86_64 (amd64):
 $SUDO tee /etc/apt/sources.list <<-'EOF'
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
 # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
@@ -34,7 +45,7 @@ deb http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe m
 
 EOF
 
-# update apt source for arm
+# For ARM (arm64):
 $SUDO tee /etc/apt/sources.list <<-'EOF'
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy main restricted universe multiverse
 # deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy main restricted universe multiverse
@@ -64,7 +75,7 @@ basic_tools=(
   apt-file zsh software-properties-common locales ripgrep fd-find
 )
 build_tools=(
-  gcc g++ make automake cmake ninja-build build-essential nasm
+  gcc g++ make automake cmake ninja-build build-essential
   clang clang-tidy clangd libclang-dev llvm bison flex
   gdb bear ccache maven libtool mold
 )
@@ -95,8 +106,8 @@ $SUDO update-locale LANG=en_US.UTF-8
 
 # for desktop virtualbox
 $SUDO apt install gcc-12 g++-12 && \
-  $SUDO ln -sf /usr/bin/gcc-12 /usr/bin/gcc && \
-  $SUDO ln -sf /usr/bin/g++-12 /usr/bin/g++
+  $SUDO update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 120 --slave /usr/bin/g++ g++ /usr/bin/g++-12 && \
+  $SUDO update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11
 
 # update-alternatives --config java
 java -version
@@ -296,6 +307,7 @@ source $HOME/.zshrc
 
 # install python pkgs
 pipx ensurepath
+# NOTE: Reload your shell (source ~/.bashrc or ~/.zshrc) to add ~/.local/bin to PATH before using pipx-installed tools
 python3 -m pip install --user pyright ruff cmake-language-server PrettyTable matplotlib seaborn
 
 wget -O nasm-2.16.03.tar.gz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.gz && \
@@ -309,7 +321,7 @@ wget -O nasm-2.16.03.tar.gz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/n
 ## autocorrect
 curl -sSL https://git.io/JcGER | sh
 
-# install go 1.24
+# install go 1.24.13
 pkgname=go1.24.13.linux-$ARCH.tar.gz && \
   wget https://go.dev/dl/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
@@ -345,7 +357,7 @@ go install golang.org/x/tools/gopls@latest && \
 curl https://sh.rustup.rs -sSf | sh -s -- -y && \
   . $HOME/.cargo/env && \
   rustc --version && \
-  rustup component add rust-src rust-analyzer rust-analyzer-preview && \
+  rustup component add rust-src rust-analyzer && \
   cargo install cargo-tarpaulin cargo-audit
 
 # install node.js
@@ -373,25 +385,26 @@ pkgname=terraform_1.13.4_linux_$ARCH.zip && \
   which terraform terragrunt hcl2json
 
 # install opencode
-curl -fsSL https://opencode.ai/install | bash
+curl -fsSL https://opencode.ai/v2/install | bash
 ## install skills
+npx skills add https://github.com/vercel-labs/skills --skill find-skills
 npx skills add https://github.com/jimliu/baoyu-skills --skill baoyu-translate
 npx skills add https://github.com/rshade/agent-skills --skill markdownlint
 npx skills add https://github.com/waybarrios/opencode-power-pack --skill code-explorer
-npx skills add https://github.com/leonxlnx/taste-skill --skill redesign-existing-projects
 npx skills add https://github.com/wondelai/skills --skill software-design-philosophy
 npx skills add https://github.com/vasilyu1983/ai-agents-public --skill software-architecture-design
 npx skills add https://github.com/mattpocock/skills --skill improve-codebase-architecture
 npx skills add https://github.com/mattpocock/skills --skill tdd
 npx skills add https://github.com/github/awesome-copilot --skill quasi-coder
 npx skills add https://github.com/obra/superpowers --skill requesting-code-review
-npx skills add https://github.com/mattpocock/skills --skill obsidian-vault
 npx skills add https://github.com/kepano/obsidian-skills --skill obsidian-markdown
 npx skills add https://github.com/anthropics/knowledge-work-plugins --skill testing-strategy
 npx skills add https://github.com/wondelai/skills --skill ddia-systems
+npx skills add https://github.com/7tocr/paper2patent --skill paper2patent
+npx skills add https://github.com/handsomestwei/patent-disclosure-skill --skill patent-disclosure-skill
 
 # install nvim
-## install dep julialang/neovim/tree-sitter
+## install nvim dependencies (julia is required for nvim's julia language support via tree-sitter)
 curl -fsSL https://install.julialang.org | sh && \
   . $HOME/.zshrc && \
   npm install -g neovim && \
@@ -399,10 +412,10 @@ curl -fsSL https://install.julialang.org | sh && \
 
 pkgarch=$(if [ "$ARCH" = "arm64" ]; then echo "arm64"; else echo "x86_64"; fi) && \
   pkgname=nvim-linux-$pkgarch.tar.gz && \
-  wget https://github.com/neovim/neovim/releases/download/v0.11.7/$pkgname && \
+  wget https://github.com/neovim/neovim/releases/download/v0.12.6/$pkgname && \
   tar -zxf $pkgname && rm -rf $pkgname && \
-  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.11.7-linux-$pkgarch && \
-  $SUDO ln -s /usr/lib/nvim-0.11.7-linux-$pkgarch/bin/nvim /usr/bin && \
+  $SUDO mv nvim-linux-$pkgarch /usr/lib/nvim-0.12.6-linux-$pkgarch && \
+  $SUDO ln -s /usr/lib/nvim-0.12.6-linux-$pkgarch/bin/nvim /usr/bin && \
   which nvim
 
 ## arm
@@ -427,7 +440,7 @@ pkgname=consul_1.11.4_linux_$ARCH.zip && \
   which consul
 
 ## install kafka
-wget https://ocs-cn-south1.heytapcs.com/blobstore/kafka_2.13-3.1.0.tgz && \
+wget https://archive.apache.org/dist/kafka/3.1.0/kafka_2.13-3.1.0.tgz && \
   $SUDO tar -zxf kafka_2.13-3.1.0.tgz -C /usr/bin && \
   rm -rf kafka_2.13-3.1.0.tgz && \
   wget https://repo1.maven.org/maven2/log4j/apache-log4j-extras/1.2.17/apache-log4j-extras-1.2.17.jar && \
@@ -497,7 +510,7 @@ git clone --depth=1 --branch v24.01 https://github.com/spdk/spdk.git spdk-24.01 
   cd spdk-24.01 && \
   ( [[ "$SUDO" == "sudo" ]] || sed -i 's/\(^[[:space:]]*\)sudo -E /\1/' scripts/pkgdep/common.sh ) && \
   sed -i '273s/^/# /' scripts/pkgdep/common.sh && \
-  cat <<EOF > scripts/pkgdep/requirements.txt
+  { cat <<EOF > scripts/pkgdep/requirements.txt
 setuptools==59.6.0
 ninja==1.13.0
 meson==1.10.0
@@ -514,16 +527,24 @@ configshell-fb
 pyparsing
 scikit-build
 EOF
+  } && \
   export PIP_CONSTRAINT=$(pwd)/scripts/pkgdep/requirements.txt && \
   EXEC_CMD=() && \
-  [[ "$SUDO" == "sudo" ]] && EXEC_CMD=(sudo -E) && \
+  { [[ "$SUDO" == "sudo" ]] && EXEC_CMD=(sudo -E) || true; } && \
   "${EXEC_CMD[@]}" scripts/pkgdep.sh --all && \
   cd .. && rm -rf spdk-24.01 && \
   unset PIP_CONSTRAINT
 
 # install ceph deps
+wget -O json-boost-1.75.0.tar.gz https://github.com/boostorg/json/archive/refs/tags/boost-1.75.0.tar.gz && \
+  tar -zxf json-boost-1.75.0.tar.gz && \
+  $SUDO cp -r json-boost-1.75.0/include/boost/json /usr/include/boost && \
+  $SUDO cp json-boost-1.75.0/include/boost/json.hpp /usr/include/boost && \
+  rm -rf json-boost-1.75.0*
+
 git clone --depth=1 --branch v17.2.9 https://github.com/ceph/ceph ceph-v17.2.9 && \
   cd ceph-v17.2.9 && \
+  sed -i '/^scipy$/i numpy>=1.22,<1.25.0' src/pybind/mgr/requirements-required.txt && \
   ./install-deps.sh && \
   cd .. && rm -rf ceph-v17.2.9
 
